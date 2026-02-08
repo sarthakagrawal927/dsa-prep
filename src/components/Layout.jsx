@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Grid3X3, Brain, Code2 } from 'lucide-react';
+import { LayoutDashboard, Grid3X3, Brain, Code2, PlusCircle } from 'lucide-react';
 
 export default function Layout() {
   const location = useLocation();
@@ -44,6 +44,10 @@ export default function Layout() {
                 <Brain className="h-4 w-4" />
                 Anki Review
               </NavLink>
+              <NavLink to="/import" className={linkClass}>
+                <PlusCircle className="h-4 w-4" />
+                Import
+              </NavLink>
             </div>
 
             {/* Compact nav for tablet (sm to md) */}
@@ -59,6 +63,10 @@ export default function Layout() {
               <NavLink to="/anki" className={linkClass}>
                 <Brain className="h-4 w-4" />
                 <span className="hidden sm:inline">Anki</span>
+              </NavLink>
+              <NavLink to="/import" className={linkClass}>
+                <PlusCircle className="h-4 w-4" />
+                <span className="hidden sm:inline">Import</span>
               </NavLink>
             </div>
           </div>
@@ -82,6 +90,10 @@ export default function Layout() {
         <NavLink to="/anki" className={bottomTabClass('/anki')}>
           <Brain className="h-5 w-5" />
           <span>Review</span>
+        </NavLink>
+        <NavLink to="/import" className={bottomTabClass('/import')}>
+          <PlusCircle className="h-5 w-5" />
+          <span>Import</span>
         </NavLink>
       </div>
     </div>

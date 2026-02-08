@@ -250,15 +250,15 @@ function ProblemHeader({ problem, pattern, status }) {
       <h1 className="text-xl sm:text-2xl font-bold text-white">
         {problem.leetcodeNumber}. {problem.title}
       </h1>
-      {problem.leetcodeLink && (
+      {problem.leetcodeUrl && (
         <a
-          href={problem.leetcodeLink}
+          href={problem.leetcodeUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
+          className="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-orange-500/30 bg-orange-500/10 px-3 py-1.5 text-xs font-medium text-orange-400 transition-colors hover:bg-orange-500/20"
         >
-          <ExternalLink className="h-3 w-3" />
-          View on LeetCode
+          <ExternalLink className="h-3.5 w-3.5" />
+          Open in LeetCode
         </a>
       )}
     </div>
