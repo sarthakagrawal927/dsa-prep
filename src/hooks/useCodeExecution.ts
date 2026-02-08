@@ -1,31 +1,40 @@
 import { useState, useCallback } from 'react';
 import { transform } from 'sucrase';
+import type { TestCase, Language } from '../types';
 
-function transpileTS(code) {
+export interface TestResult extends TestCase {
+  actual: unknown;
+  passed: boolean;
+  error?: string;
+}
+
+interface ExecuteResult {
+  output: string;
+  errors: string | null;
+  testResults: TestResult[];
+}
+
+function transpileTS(code: string): { code: string | null; error: string | null } {
   try {
-    const result = transform(code, {
-      transforms: ['typescript'],
-      disableESTransforms: true,
-    });
+    const result = transform(code, { transforms: ['typescript'], disableESTransforms: true });
     return { code: result.code, error: null };
-  } catch (e) {
+  } catch (e: any) {
     return { code: null, error: e.message };
   }
 }
 
 export function useCodeExecution() {
   const [output, setOutput] = useState('');
-  const [errors, setErrors] = useState(null);
-  const [testResults, setTestResults] = useState([]);
+  const [errors, setErrors] = useState<string | null>(null);
+  const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isRunning, setIsRunning] = useState(false);
 
-  const execute = useCallback((code, testCases, language = 'javascript') => {
+  const execute = useCallback((code: string, testCases: TestCase[], language: Language = 'javascript'): Promise<ExecuteResult> => {
     setIsRunning(true);
     setOutput('');
     setErrors(null);
     setTestResults([]);
 
-    // Transpile TS to JS if needed
     let jsCode = code;
     if (language === 'typescript') {
       const { code: transpiled, error } = transpileTS(code);
@@ -34,16 +43,15 @@ export function useCodeExecution() {
         setIsRunning(false);
         return Promise.resolve({ output: '', errors: 'TypeScript Error: ' + error, testResults: [] });
       }
-      jsCode = transpiled;
+      jsCode = transpiled!;
     }
 
     return new Promise((resolve) => {
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
-      iframe.sandbox = 'allow-scripts';
+      iframe.sandbox.add('allow-scripts');
 
       const testCasesJSON = JSON.stringify(testCases || []);
-
       const funcMatchRegex = `
         const funcMatches = userCode.match(/function\\s+(\\w+)/g);
         let funcName = null;
@@ -66,14 +74,11 @@ export function useCodeExecution() {
         console.error = function() { logs.push('ERROR: ' + Array.from(arguments).map(String).join(' ')); };
         console.warn = function() { logs.push('WARN: ' + Array.from(arguments).map(String).join(' ')); };
         console.info = function() { logs.push('INFO: ' + Array.from(arguments).map(String).join(' ')); };
-
         try {
           const userCode = ${JSON.stringify(jsCode)};
           eval(userCode);
-
           const testCases = ${testCasesJSON};
           ${funcMatchRegex}
-
           const results = testCases.map(function(tc) {
             try {
               if (funcName) {
@@ -87,21 +92,18 @@ export function useCodeExecution() {
               return { args: tc.args, expected: tc.expected, description: tc.description, actual: null, passed: false, error: e.message };
             }
           });
-
           parent.postMessage({ type: 'exec-result', output: logs.join('\\n'), errors: null, testResults: results }, '*');
         } catch(e) {
           parent.postMessage({ type: 'exec-result', output: logs.join('\\n'), errors: e.message, testResults: [] }, '*');
         }
       </script></body></html>`;
 
-      let timeout;
-
-      const handler = (event) => {
+      let timeout: ReturnType<typeof setTimeout>;
+      const handler = (event: MessageEvent) => {
         if (event.data?.type === 'exec-result') {
           clearTimeout(timeout);
           window.removeEventListener('message', handler);
           document.body.removeChild(iframe);
-
           const { output: out, errors: err, testResults: results } = event.data;
           setOutput(out || '');
           setErrors(err);
@@ -110,9 +112,7 @@ export function useCodeExecution() {
           resolve({ output: out, errors: err, testResults: results });
         }
       };
-
       window.addEventListener('message', handler);
-
       timeout = setTimeout(() => {
         window.removeEventListener('message', handler);
         if (iframe.parentNode) document.body.removeChild(iframe);
@@ -120,7 +120,6 @@ export function useCodeExecution() {
         setIsRunning(false);
         resolve({ output: '', errors: 'Execution timed out (5s limit)', testResults: [] });
       }, 5000);
-
       document.body.appendChild(iframe);
       iframe.srcdoc = html;
     });

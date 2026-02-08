@@ -4,6 +4,8 @@ import Editor from '@monaco-editor/react';
 import { useProblems } from '../hooks/useProblems';
 import { useProgress } from '../hooks/useProgress';
 import { useCodeExecution } from '../hooks/useCodeExecution';
+import { useAI, loadAIConfig, saveAIConfig, getModels, type AIProvider } from '../hooks/useAI';
+import type { Language } from '../types';
 import {
   Play,
   RotateCcw,
@@ -20,6 +22,10 @@ import {
   ArrowLeft,
   Loader2,
   AlertTriangle,
+  Bot,
+  Send,
+  X,
+  Settings,
 } from 'lucide-react';
 
 export default function ProblemView() {
@@ -27,10 +33,12 @@ export default function ProblemView() {
   const { getById, patterns } = useProblems();
   const { getStatus, updateStatus, getNotes, saveNotes, getSavedCode, getSavedLanguage, saveCode } = useProgress();
   const { execute, output, errors, testResults, isRunning, clearOutput } = useCodeExecution();
+  const ai = useAI();
 
-  const problem = getById(id);
+  const problem = getById(id!);
   const [code, setCode] = useState('');
-  const [language, setLanguage] = useState('javascript');
+  const [language, setLanguage] = useState<Language>('javascript');
+  const [showAI, setShowAI] = useState(false);
   const [notes, setNotesLocal] = useState('');
   const [expandedSteps, setExpandedSteps] = useState({});
   const [revealedHints, setRevealedHints] = useState({});
@@ -172,6 +180,8 @@ export default function ProblemView() {
               isRunning={isRunning}
               language={language}
               setLanguage={setLanguage}
+              onAskAI={() => setShowAI(!showAI)}
+              showAI={showAI}
             />
             <Editor
               height="100%"
@@ -193,19 +203,25 @@ export default function ProblemView() {
             />
           </div>
           <div className="flex-[3] overflow-y-auto bg-gray-900">
-            <div className="flex h-9 items-center justify-between border-b border-gray-800 px-4">
-              <span className="text-xs font-medium text-gray-400">Output</span>
-              {markers.length > 0 && (
-                <span className="flex items-center gap-1 text-xs text-yellow-400">
-                  <AlertTriangle className="h-3 w-3" />
-                  {markers.length} error{markers.length > 1 ? 's' : ''}
-                </span>
-              )}
-            </div>
-            <div className="p-4">
-              <SyntaxErrors markers={markers} />
-              <OutputContent output={output} errors={errors} testResults={testResults} />
-            </div>
+            {showAI ? (
+              <AIPanel ai={ai} problem={problem} code={code} language={language} />
+            ) : (
+              <>
+                <div className="flex h-9 items-center justify-between border-b border-gray-800 px-4">
+                  <span className="text-xs font-medium text-gray-400">Output</span>
+                  {markers.length > 0 && (
+                    <span className="flex items-center gap-1 text-xs text-yellow-400">
+                      <AlertTriangle className="h-3 w-3" />
+                      {markers.length} error{markers.length > 1 ? 's' : ''}
+                    </span>
+                  )}
+                </div>
+                <div className="p-4">
+                  <SyntaxErrors markers={markers} />
+                  <OutputContent output={output} errors={errors} testResults={testResults} />
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -277,8 +293,14 @@ export default function ProblemView() {
                   />
                 </div>
                 <div className="border-t border-gray-800 bg-gray-900 p-3">
-                  <SyntaxErrors markers={markers} />
-                  <OutputContent output={output} errors={errors} testResults={testResults} />
+                  {showAI ? (
+                    <AIPanel ai={ai} problem={problem} code={code} language={language} />
+                  ) : (
+                    <>
+                      <SyntaxErrors markers={markers} />
+                      <OutputContent output={output} errors={errors} testResults={testResults} />
+                    </>
+                  )}
                 </div>
               </div>
             )}
@@ -400,25 +422,40 @@ function NotesSection({ notes, setNotesLocal, handleSaveNotes }) {
 }
 
 /** Editor toolbar with Run and Reset buttons */
-function EditorToolbar({ handleReset, handleRun, isRunning, language, setLanguage }) {
+function EditorToolbar({ handleReset, handleRun, isRunning, language, setLanguage, onAskAI, showAI }: {
+  handleReset: () => void; handleRun: () => void; isRunning: boolean;
+  language: Language; setLanguage: (l: Language) => void;
+  onAskAI: () => void; showAI: boolean;
+}) {
   return (
     <div className="flex items-center justify-between border-b border-gray-800 px-3 sm:px-4 py-2">
-      <div className="flex items-center gap-1 rounded-md bg-gray-800 p-0.5">
+      <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1 rounded-md bg-gray-800 p-0.5">
+          <button
+            onClick={() => setLanguage('javascript')}
+            className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+              language === 'javascript' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            JS
+          </button>
+          <button
+            onClick={() => setLanguage('typescript')}
+            className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+              language === 'typescript' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            TS
+          </button>
+        </div>
         <button
-          onClick={() => setLanguage('javascript')}
-          className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-            language === 'javascript' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
+          onClick={onAskAI}
+          className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+            showAI ? 'bg-purple-600 text-white' : 'text-purple-400 hover:bg-purple-500/20'
           }`}
         >
-          JS
-        </button>
-        <button
-          onClick={() => setLanguage('typescript')}
-          className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-            language === 'typescript' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          TS
+          <Bot className="h-3.5 w-3.5" />
+          AI
         </button>
       </div>
       <div className="flex items-center gap-2">
@@ -441,6 +478,161 @@ function EditorToolbar({ handleReset, handleRun, isRunning, language, setLanguag
           )}
           Run
         </button>
+      </div>
+    </div>
+  );
+}
+
+/** AI Advisor Panel */
+function AIPanel({ ai, problem, code, language }: { ai: ReturnType<typeof useAI>; problem: any; code: string; language: Language }) {
+  const [input, setInput] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+  const [config, setConfig] = useState(loadAIConfig);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [ai.messages]);
+
+  const handleSend = () => {
+    if (!input.trim() || ai.isStreaming) return;
+    if (!config.apiKey) {
+      setShowSettings(true);
+      return;
+    }
+    const systemContext = `Problem: "${problem.title}" (${problem.difficulty})\nPattern: ${problem.pattern}\nDescription: ${problem.description?.slice(0, 500)}\n\nStudent's current code (${language}):\n\`\`\`\n${code}\n\`\`\``;
+    abortRef.current = new AbortController();
+    ai.ask(input, config, systemContext, abortRef.current.signal);
+    setInput('');
+  };
+
+  const handleSaveSettings = () => {
+    saveAIConfig(config);
+    setShowSettings(false);
+  };
+
+  if (showSettings) {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="flex h-9 items-center justify-between border-b border-gray-800 px-4">
+          <span className="text-xs font-medium text-purple-400">AI Settings</span>
+          <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-200">
+            <X className="h-3.5 w-3.5" />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          <div>
+            <label className="mb-1 block text-xs text-gray-400">Provider</label>
+            <select
+              value={config.provider}
+              onChange={e => {
+                const p = e.target.value as AIProvider;
+                setConfig(prev => ({ ...prev, provider: p, model: getModels(p)[0] }));
+              }}
+              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-200 outline-none"
+            >
+              <option value="openai">OpenAI</option>
+              <option value="anthropic">Anthropic</option>
+              <option value="google">Google Gemini</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-400">Model</label>
+            <select
+              value={config.model}
+              onChange={e => setConfig(prev => ({ ...prev, model: e.target.value }))}
+              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-200 outline-none"
+            >
+              {getModels(config.provider).map(m => <option key={m} value={m}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-400">API Key</label>
+            <input
+              type="password"
+              value={config.apiKey}
+              onChange={e => setConfig(prev => ({ ...prev, apiKey: e.target.value }))}
+              placeholder="sk-..."
+              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-200 placeholder-gray-500 outline-none"
+            />
+          </div>
+          <button
+            onClick={handleSaveSettings}
+            className="w-full rounded-lg bg-purple-600 py-2 text-xs font-medium text-white hover:bg-purple-700"
+          >
+            Save
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex h-9 items-center justify-between border-b border-gray-800 px-4">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-purple-400">
+          <Bot className="h-3.5 w-3.5" />
+          AI Advisor
+        </span>
+        <div className="flex items-center gap-1">
+          <button onClick={() => ai.clearMessages()} className="text-xs text-gray-500 hover:text-gray-300 px-1">Clear</button>
+          <button onClick={() => setShowSettings(true)} className="text-gray-400 hover:text-gray-200">
+            <Settings className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
+        {ai.messages.length === 0 && (
+          <div className="text-center py-4">
+            <Bot className="mx-auto h-8 w-8 text-gray-700 mb-2" />
+            <p className="text-xs text-gray-500">Ask for hints, approach ideas, or help debugging — without spoilers.</p>
+            <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
+              {['Give me a hint', 'What pattern should I use?', 'Help me debug'].map(q => (
+                <button
+                  key={q}
+                  onClick={() => { setInput(q); }}
+                  className="rounded-full border border-gray-700 bg-gray-800 px-2.5 py-1 text-xs text-gray-400 hover:border-purple-500/50 hover:text-purple-300"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {ai.messages.map((msg, i) => (
+          <div key={i} className={`text-xs leading-relaxed ${msg.role === 'user' ? 'text-gray-300' : 'text-purple-200'}`}>
+            <span className={`text-[10px] font-medium uppercase tracking-wider ${msg.role === 'user' ? 'text-gray-500' : 'text-purple-500'}`}>
+              {msg.role === 'user' ? 'You' : 'AI'}
+            </span>
+            <p className="mt-0.5 whitespace-pre-wrap">{msg.content}{ai.isStreaming && i === ai.messages.length - 1 && msg.role === 'assistant' ? '▊' : ''}</p>
+          </div>
+        ))}
+        {ai.error && (
+          <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-2 text-xs text-red-400">
+            {ai.error}
+          </div>
+        )}
+        <div ref={chatEndRef} />
+      </div>
+      <div className="border-t border-gray-800 p-2">
+        <div className="flex gap-1.5">
+          <input
+            value={input}
+            onChange={e => setInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
+            placeholder={config.apiKey ? 'Ask for a hint...' : 'Set API key in settings first'}
+            disabled={!config.apiKey && !showSettings}
+            className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-gray-200 placeholder-gray-500 outline-none focus:border-purple-500/50 disabled:opacity-50"
+          />
+          <button
+            onClick={handleSend}
+            disabled={ai.isStreaming || !input.trim()}
+            className="rounded-lg bg-purple-600 px-2.5 py-1.5 text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+          >
+            {ai.isStreaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+          </button>
+        </div>
       </div>
     </div>
   );
