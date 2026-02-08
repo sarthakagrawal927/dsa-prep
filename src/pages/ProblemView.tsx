@@ -46,6 +46,8 @@ export default function ProblemView() {
   const [revealedCode, setRevealedCode] = useState({});
   const [showEditor, setShowEditor] = useState(false);
   const [markers, setMarkers] = useState([]);
+  const [selectedCode, setSelectedCode] = useState('');
+  const editorRef = useRef<any>(null);
   const saveTimerRef = useRef(null);
 
   useEffect(() => {
@@ -91,6 +93,19 @@ export default function ProblemView() {
 
   const handleValidation = useCallback((newMarkers) => {
     setMarkers(newMarkers.filter(m => m.severity >= 8)); // errors only (8 = Error)
+  }, []);
+
+  const handleEditorMount = useCallback((editor: any) => {
+    editorRef.current = editor;
+    editor.onDidChangeCursorSelection(() => {
+      const selection = editor.getSelection();
+      if (selection && !selection.isEmpty()) {
+        const text = editor.getModel()?.getValueInRange(selection) || '';
+        setSelectedCode(text);
+      } else {
+        setSelectedCode('');
+      }
+    });
   }, []);
 
   const handleRun = useCallback(async () => {
@@ -190,6 +205,7 @@ export default function ProblemView() {
               value={code}
               onChange={handleCodeChange}
               onValidate={handleValidation}
+              onMount={handleEditorMount}
               options={{
                 minimap: { enabled: false },
                 fontSize: 14,
@@ -204,7 +220,7 @@ export default function ProblemView() {
           </div>
           <div className="flex-[3] overflow-y-auto bg-gray-900">
             {showAI ? (
-              <AIPanel ai={ai} problem={problem} code={code} language={language} />
+              <AIPanel ai={ai} problem={problem} code={code} language={language} selectedCode={selectedCode} />
             ) : (
               <>
                 <div className="flex h-9 items-center justify-between border-b border-gray-800 px-4">
@@ -280,6 +296,7 @@ export default function ProblemView() {
                     value={code}
                     onChange={handleCodeChange}
                     onValidate={handleValidation}
+                    onMount={handleEditorMount}
                     options={{
                       minimap: { enabled: false },
                       fontSize: 13,
@@ -294,7 +311,7 @@ export default function ProblemView() {
                 </div>
                 <div className="border-t border-gray-800 bg-gray-900 p-3">
                   {showAI ? (
-                    <AIPanel ai={ai} problem={problem} code={code} language={language} />
+                    <AIPanel ai={ai} problem={problem} code={code} language={language} selectedCode={selectedCode} />
                   ) : (
                     <>
                       <SyntaxErrors markers={markers} />
@@ -484,7 +501,7 @@ function EditorToolbar({ handleReset, handleRun, isRunning, language, setLanguag
 }
 
 /** AI Advisor Panel */
-function AIPanel({ ai, problem, code, language }: { ai: ReturnType<typeof useAI>; problem: any; code: string; language: Language }) {
+function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType<typeof useAI>; problem: any; code: string; language: Language; selectedCode?: string }) {
   const [input, setInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [config, setConfig] = useState(loadAIConfig);
@@ -495,16 +512,34 @@ function AIPanel({ ai, problem, code, language }: { ai: ReturnType<typeof useAI>
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [ai.messages]);
 
+  const buildSystemContext = (extraSnippet?: string) => {
+    let ctx = `Problem: "${problem.title}" (${problem.difficulty})\nPattern: ${problem.pattern}\nDescription: ${problem.description?.slice(0, 500)}\n\nStudent's current code (${language}):\n\`\`\`\n${code}\n\`\`\``;
+    if (extraSnippet) {
+      ctx += `\n\nThe student has selected this specific code snippet and is asking about it:\n\`\`\`\n${extraSnippet}\n\`\`\``;
+    }
+    return ctx;
+  };
+
   const handleSend = () => {
     if (!input.trim() || ai.isStreaming) return;
     if (!config.apiKey) {
       setShowSettings(true);
       return;
     }
-    const systemContext = `Problem: "${problem.title}" (${problem.difficulty})\nPattern: ${problem.pattern}\nDescription: ${problem.description?.slice(0, 500)}\n\nStudent's current code (${language}):\n\`\`\`\n${code}\n\`\`\``;
     abortRef.current = new AbortController();
-    ai.ask(input, config, systemContext, abortRef.current.signal);
+    ai.ask(input, config, buildSystemContext(selectedCode || undefined), abortRef.current.signal);
     setInput('');
+  };
+
+  const handleAskAboutSelection = (question: string) => {
+    if (!selectedCode || ai.isStreaming) return;
+    if (!config.apiKey) {
+      setShowSettings(true);
+      return;
+    }
+    const msg = `[Selected code]\n\`\`\`\n${selectedCode}\n\`\`\`\n\n${question}`;
+    abortRef.current = new AbortController();
+    ai.ask(msg, config, buildSystemContext(selectedCode), abortRef.current.signal);
   };
 
   const handleSaveSettings = () => {
@@ -617,13 +652,35 @@ function AIPanel({ ai, problem, code, language }: { ai: ReturnType<typeof useAI>
         )}
         <div ref={chatEndRef} />
       </div>
-      <div className="border-t border-gray-800 p-2">
-        <div className="flex gap-1.5">
+      <div className="border-t border-gray-800">
+        {selectedCode && (
+          <div className="border-b border-gray-800 px-2 py-1.5">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <Code2 className="h-3 w-3 text-blue-400 flex-shrink-0" />
+              <span className="text-[10px] text-blue-400 font-medium truncate">
+                Selected: {selectedCode.split('\n')[0].slice(0, 40)}{selectedCode.length > 40 ? '...' : ''}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {['Explain this code', 'Is this correct?', 'How to optimize this?', 'What\'s the time complexity?'].map(q => (
+                <button
+                  key={q}
+                  onClick={() => handleAskAboutSelection(q)}
+                  disabled={ai.isStreaming}
+                  className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] text-blue-300 hover:bg-blue-500/20 disabled:opacity-50"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        <div className="flex gap-1.5 p-2">
           <input
             value={input}
             onChange={e => setInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder={config.apiKey ? 'Ask for a hint...' : 'Set API key in settings first'}
+            placeholder={config.apiKey ? (selectedCode ? 'Ask about selection or type a question...' : 'Ask for a hint...') : 'Set API key in settings first'}
             disabled={!config.apiKey && !showSettings}
             className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-gray-200 placeholder-gray-500 outline-none focus:border-purple-500/50 disabled:opacity-50"
           />

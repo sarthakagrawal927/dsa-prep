@@ -16,11 +16,11 @@ interface AIConfig {
 const AI_CONFIG_KEY = 'dsa-prep-ai-config';
 
 const MODELS: Record<AIProvider, string[]> = {
-  openai: ['gpt-4.1-nano', 'gpt-4.1-mini', 'gpt-4.1', 'gpt-4o-mini', 'gpt-4o', 'o4-mini', 'o3-mini'],
+  openai: ['gpt-4.1-nano', 'gpt-4.1-mini', 'gpt-4.1', 'gpt-4o-mini', 'gpt-4o', 'o4-mini', 'o3-mini', 'gpt-4.5-preview'],
   anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
-  google: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
+  google: ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-3-flash-preview', 'gemini-3-pro-preview'],
   deepseek: ['deepseek-chat', 'deepseek-reasoner'],
-  qwen: ['qwen-turbo-latest', 'qwen-plus-latest', 'qwen-max-latest'],
+  qwen: ['qwen-turbo-latest', 'qwen-plus-latest', 'qwen-max-latest', 'qwen3-235b-a22b', 'qwen3-32b', 'qwq-32b'],
 };
 
 export function getModels(provider: AIProvider): string[] {
