@@ -25,6 +25,16 @@ export interface AnkiCard {
   back: string;
 }
 
+export interface MCQCard {
+  id: string;
+  problemId: string;
+  question: string;
+  options: string[];
+  correctIndex: number;
+  explanation: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+}
+
 export interface Problem {
   id: string;
   title: string;

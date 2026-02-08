@@ -16,11 +16,11 @@ interface AIConfig {
 const AI_CONFIG_KEY = 'dsa-prep-ai-config';
 
 const MODELS: Record<AIProvider, string[]> = {
-  openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-4.1-nano', 'o4-mini'],
-  anthropic: ['claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001'],
-  google: ['gemini-2.0-flash', 'gemini-2.5-flash-preview-04-17'],
+  openai: ['gpt-4.1-nano', 'gpt-4.1-mini', 'gpt-4.1', 'gpt-4o-mini', 'gpt-4o', 'o4-mini', 'o3-mini'],
+  anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-5-20250929', 'claude-opus-4-6'],
+  google: ['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.0-flash'],
   deepseek: ['deepseek-chat', 'deepseek-reasoner'],
-  qwen: ['qwen-turbo', 'qwen-plus', 'qwen-max'],
+  qwen: ['qwen-turbo-latest', 'qwen-plus-latest', 'qwen-max-latest'],
 };
 
 export function getModels(provider: AIProvider): string[] {
@@ -32,7 +32,7 @@ export function loadAIConfig(): AIConfig {
     const raw = localStorage.getItem(AI_CONFIG_KEY);
     if (raw) return JSON.parse(raw);
   } catch { }
-  return { provider: 'openai', apiKey: '', model: 'gpt-4o-mini' };
+  return { provider: 'openai', apiKey: '', model: 'gpt-4.1-nano' };
 }
 
 export function saveAIConfig(config: AIConfig) {
