@@ -5,6 +5,7 @@ import { useProblems } from '../hooks/useProblems';
 import { useProgress } from '../hooks/useProgress';
 import { useCodeExecution } from '../hooks/useCodeExecution';
 import { useAI, loadAIConfig, saveAIConfig, getModels, type AIProvider } from '../hooks/useAI';
+import { useNotes } from '../hooks/useNotes';
 import type { Language } from '../types';
 import {
   Play,
@@ -31,9 +32,10 @@ import {
 export default function ProblemView() {
   const { id } = useParams();
   const { getById, patterns } = useProblems();
-  const { getStatus, updateStatus, getNotes, saveNotes, getSavedCode, getSavedLanguage, saveCode } = useProgress();
+  const { getStatus, updateStatus, getSavedCode, getSavedLanguage, saveCode } = useProgress();
   const { execute, output, errors, testResults, isRunning, clearOutput } = useCodeExecution();
-  const ai = useAI();
+  const ai = useAI(id);
+  const { notes: notesFromSupabase, saveNotes: saveNotesToSupabase } = useNotes(id);
 
   const problem = getById(id!);
   const [code, setCode] = useState('');
@@ -50,12 +52,16 @@ export default function ProblemView() {
   const editorRef = useRef<any>(null);
   const saveTimerRef = useRef(null);
 
+  // Sync Supabase notes into local state when loaded
+  useEffect(() => {
+    setNotesLocal(notesFromSupabase);
+  }, [notesFromSupabase]);
+
   useEffect(() => {
     if (problem) {
       const saved = getSavedCode(problem.id);
       setCode(saved !== null ? saved : problem.starterCode);
       setLanguage(getSavedLanguage(problem.id));
-      setNotesLocal(getNotes(problem.id));
       setExpandedSteps({});
       setRevealedHints({});
       setRevealedApproach({});
@@ -131,7 +137,7 @@ export default function ProblemView() {
 
   const handleSaveNotes = () => {
     if (problem) {
-      saveNotes(problem.id, notes);
+      saveNotesToSupabase(notes);
     }
   };
 

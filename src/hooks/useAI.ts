@@ -1,4 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 export type AIProvider = 'openai' | 'anthropic' | 'google' | 'deepseek' | 'qwen';
 
@@ -199,10 +201,76 @@ async function streamGoogle(config: AIConfig, messages: AIMessage[], systemConte
   }
 }
 
-export function useAI() {
+const LOCAL_CHATS_KEY = 'dsa-prep-chats';
+
+function loadLocalChats(): Record<string, AIMessage[]> {
+  try {
+    const raw = localStorage.getItem(LOCAL_CHATS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveLocalChats(all: Record<string, AIMessage[]>) {
+  localStorage.setItem(LOCAL_CHATS_KEY, JSON.stringify(all));
+}
+
+export function useAI(problemId?: string) {
+  const { user } = useAuth();
   const [messages, setMessages] = useState<AIMessage[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Load chat history when problem changes
+  useEffect(() => {
+    if (!problemId) return;
+    setMessages([]);
+    setError(null);
+
+    if (user) {
+      // Signed in: load from Supabase
+      supabase
+        .from('user_chats')
+        .select('messages')
+        .eq('user_id', user.id)
+        .eq('problem_id', problemId)
+        .single()
+        .then(({ data }) => {
+          if (data?.messages && Array.isArray(data.messages)) {
+            setMessages(data.messages as AIMessage[]);
+          }
+        });
+    } else {
+      // Guest: load from localStorage
+      const all = loadLocalChats();
+      if (all[problemId]) {
+        setMessages(all[problemId]);
+      }
+    }
+  }, [user, problemId]);
+
+  const persistMessages = useCallback((msgs: AIMessage[]) => {
+    if (!problemId) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      if (user) {
+        // Signed in: save to Supabase
+        supabase.from('user_chats').upsert({
+          user_id: user.id,
+          problem_id: problemId,
+          messages: msgs,
+          updated_at: new Date().toISOString(),
+        }).then();
+      } else {
+        // Guest: save to localStorage
+        const all = loadLocalChats();
+        all[problemId] = msgs;
+        saveLocalChats(all);
+      }
+    }, 300);
+  }, [user, problemId]);
 
   const ask = useCallback(async (
     userMessage: string,
@@ -232,19 +300,39 @@ export function useAI() {
         : streamOpenAICompat;
 
       await streamFn(config, newMessages, systemContext, onChunk, signal || new AbortController().signal);
+
+      // Persist after streaming completes
+      const finalMessages: AIMessage[] = [...newMessages, { role: 'assistant', content: fullResponse }];
+      persistMessages(finalMessages);
     } catch (e: any) {
       if (e.name !== 'AbortError') {
         setError(e.message);
       }
+      // Still persist the user message + partial response
+      if (fullResponse) {
+        persistMessages([...newMessages, { role: 'assistant', content: fullResponse }]);
+      }
     } finally {
       setIsStreaming(false);
     }
-  }, [messages]);
+  }, [messages, persistMessages]);
 
   const clearMessages = useCallback(() => {
     setMessages([]);
     setError(null);
-  }, []);
+    if (!problemId) return;
+    if (user) {
+      supabase.from('user_chats')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('problem_id', problemId)
+        .then();
+    } else {
+      const all = loadLocalChats();
+      delete all[problemId];
+      saveLocalChats(all);
+    }
+  }, [user, problemId]);
 
   return { messages, isStreaming, error, ask, clearMessages };
 }

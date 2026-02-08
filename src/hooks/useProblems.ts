@@ -1,6 +1,8 @@
-import { useMemo, useState, useCallback, useSyncExternalStore } from 'react';
+import { useMemo, useCallback, useSyncExternalStore, useEffect } from 'react';
 import data from '../data/problems.json';
 import type { Problem, AnkiCardWithMeta, ProblemsData } from '../types';
+import { supabase } from '../lib/supabase';
+import { useAuth } from '../contexts/AuthContext';
 
 const typedData = data as ProblemsData;
 
@@ -17,6 +19,11 @@ function getSnapshot() {
   return customProblemsStore;
 }
 
+function setStore(problems: Problem[]) {
+  customProblemsStore = problems;
+  listeners.forEach(cb => cb());
+}
+
 function addToStore(problem: Problem) {
   customProblemsStore = [...customProblemsStore.filter(p => p.id !== problem.id), problem];
   listeners.forEach(cb => cb());
@@ -24,7 +31,23 @@ function addToStore(problem: Problem) {
 
 export function useProblems() {
   const { patterns } = typedData;
+  const { user } = useAuth();
   const customProblems = useSyncExternalStore(subscribe, getSnapshot);
+
+  // Load imported problems from Supabase on mount
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from('user_imported_problems')
+      .select('problem_id, problem_data')
+      .eq('user_id', user.id)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const problems = data.map(row => row.problem_data as Problem);
+          setStore(problems);
+        }
+      });
+  }, [user]);
 
   const problems = useMemo(() => {
     const builtIn = typedData.problems;
@@ -41,14 +64,21 @@ export function useProblems() {
 
   const addCustomProblem = useCallback((problem: Problem) => {
     addToStore(problem);
-  }, []);
+    // Persist to Supabase
+    if (user) {
+      supabase.from('user_imported_problems').upsert({
+        user_id: user.id,
+        problem_id: problem.id,
+        problem_data: problem,
+      }).then();
+    }
+  }, [user]);
 
   const getById = (id: string): Problem | null => {
     return problems.find(p => p.id === id) || null;
   };
 
   const getBySlug = (slug: string): Problem | null => {
-    // Check built-in problems by id (which is the slug) or by leetcodeUrl
     return problems.find(p =>
       p.id === slug ||
       p.leetcodeUrl?.includes(`/problems/${slug}/`) ||
