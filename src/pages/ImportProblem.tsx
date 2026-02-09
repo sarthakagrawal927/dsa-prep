@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useProblems } from '../hooks/useProblems';
+import { useCategory } from '../contexts/CategoryContext';
 import type { Problem } from '../types';
 import {
   fetchLeetCodeProblem,
@@ -26,7 +27,8 @@ interface SuccessInfo {
 
 export default function ImportProblem() {
   const navigate = useNavigate();
-  const { patterns, getBySlug, addCustomProblem } = useProblems();
+  const { category } = useCategory();
+  const { patterns, getBySlug, addCustomProblem } = useProblems(category);
   const [url, setUrl] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -52,7 +54,7 @@ export default function ImportProblem() {
     const existing = getBySlug(slug);
     if (existing) {
       setLoading(false);
-      navigate(`/problem/${existing.id}`);
+      navigate(`/${category}/problem/${existing.id}`);
       return;
     }
 
@@ -157,7 +159,7 @@ export default function ImportProblem() {
               <p><span className="text-gray-500">Test cases:</span> {success.testCases} extracted</p>
             </div>
             <button
-              onClick={() => navigate(`/problem/${success.id}`)}
+              onClick={() => navigate(`/${category}/problem/${success.id}`)}
               className="mt-4 w-full rounded-lg bg-green-600 py-2.5 text-sm font-medium text-white transition-colors hover:bg-green-700"
             >
               Start Solving

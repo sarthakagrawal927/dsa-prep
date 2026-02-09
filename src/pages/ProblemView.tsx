@@ -7,6 +7,8 @@ import { useCodeExecution } from '../hooks/useCodeExecution';
 import { useAI, loadAIConfig, saveAIConfig, getModels, LOCAL_PROVIDERS, type AIProvider } from '../hooks/useAI';
 import { useNotes } from '../hooks/useNotes';
 import { fetchLeetCodeProblem, buildProblemFromLeetCode } from '../lib/leetcode';
+import { useCategory } from '../contexts/CategoryContext';
+import { getCategoryConfig } from '../types';
 import type { Language, SimilarQuestion } from '../types';
 import {
   Play,
@@ -34,7 +36,9 @@ import {
 
 export default function ProblemView() {
   const { id } = useParams();
-  const { getById, patterns } = useProblems();
+  const { category } = useCategory();
+  const catConfig = getCategoryConfig(category);
+  const { getById, patterns } = useProblems(category);
   const { getStatus, updateStatus, getSavedCode, getSavedLanguage, saveCode } = useProgress();
   const { execute, output, errors, testResults, isRunning, clearOutput } = useCodeExecution();
   const ai = useAI(id);
@@ -63,7 +67,7 @@ export default function ProblemView() {
   useEffect(() => {
     if (problem) {
       const saved = getSavedCode(problem.id);
-      setCode(saved !== null ? saved : problem.starterCode);
+      setCode(saved !== null ? saved : (problem.starterCode || ''));
       setLanguage(getSavedLanguage(problem.id));
       setExpandedSteps({});
       setRevealedHints({});
@@ -153,7 +157,7 @@ export default function ProblemView() {
       <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <div className="text-center">
           <h2 className="text-xl font-semibold text-white">Problem not found</h2>
-          <Link to="/patterns" className="mt-4 inline-block text-blue-400 hover:text-blue-300">
+          <Link to={`/${category}/patterns`} className="mt-4 inline-block text-blue-400 hover:text-blue-300">
             Back to Patterns
           </Link>
         </div>
@@ -172,7 +176,7 @@ export default function ProblemView() {
         <div className="flex w-[40%] flex-col border-r border-gray-800">
           <div className="flex-1 overflow-y-auto p-6">
             <Link
-              to="/patterns"
+              to={`/${category}/patterns`}
               className="mb-4 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200"
             >
               <ArrowLeft className="h-4 w-4" />
@@ -256,7 +260,7 @@ export default function ProblemView() {
       <div className="md:hidden overflow-x-hidden max-w-full">
         <div className="overflow-y-auto overflow-x-hidden p-4 pb-24">
           <Link
-            to="/patterns"
+            to={`/${category}/patterns`}
             className="mb-4 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200"
           >
             <ArrowLeft className="h-4 w-4" />
@@ -957,7 +961,7 @@ function SimilarProblems({ problem }: { problem: any }) {
   const handleImportSimilar = async (slug: string) => {
     const existing = getBySlug(slug);
     if (existing) {
-      navigate(`/problem/${existing.id}`);
+      navigate(`/${category}/problem/${existing.id}`);
       return;
     }
 
@@ -968,7 +972,7 @@ function SimilarProblems({ problem }: { problem: any }) {
       const pat = patterns.find(p => p.id === problem.pattern);
       const newProblem = buildProblemFromLeetCode(q, slug, pat?.name || '');
       addCustomProblem(newProblem);
-      navigate(`/problem/${newProblem.id}`);
+      navigate(`/${category}/problem/${newProblem.id}`);
     } catch {
       // Fallback: navigate to import page
       navigate(`/import`);
@@ -992,7 +996,7 @@ function SimilarProblems({ problem }: { problem: any }) {
         {samePattern.map(p => (
           <Link
             key={p.id}
-            to={`/problem/${p.id}`}
+            to={`/${category}/problem/${p.id}`}
             className="flex items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 p-3 transition-colors hover:bg-gray-800/50"
           >
             <div className="min-w-0">
@@ -1014,7 +1018,7 @@ function SimilarProblems({ problem }: { problem: any }) {
           return (
             <button
               key={sq.titleSlug}
-              onClick={() => existing ? navigate(`/problem/${existing.id}`) : handleImportSimilar(sq.titleSlug)}
+              onClick={() => existing ? navigate(`/${category}/problem/${existing.id}`) : handleImportSimilar(sq.titleSlug)}
               disabled={importing === sq.titleSlug}
               className="flex w-full items-center justify-between rounded-lg border border-gray-800 bg-gray-900/50 p-3 text-left transition-colors hover:bg-gray-800/50 disabled:opacity-50"
             >

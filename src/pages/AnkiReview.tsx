@@ -5,6 +5,7 @@ import { useProblems } from '../hooks/useProblems';
 import { useSpacedRepetition } from '../hooks/useSpacedRepetition';
 import { useCodeExecution } from '../hooks/useCodeExecution';
 import { useProgress } from '../hooks/useProgress';
+import { useCategory } from '../contexts/CategoryContext';
 import { MCQ_CARDS } from '../data/mcq-cards';
 import type { MCQCard, Problem, Language } from '../types';
 import {
@@ -36,7 +37,8 @@ function shuffleArray<T>(arr: T[]): T[] {
 }
 
 export default function AnkiReview() {
-  const { getAllAnkiCards, patterns, getById } = useProblems();
+  const { category } = useCategory();
+  const { getAllAnkiCards, patterns, getById } = useProblems(category);
   const { getDueCards, reviewCard, getReviewStats } = useSpacedRepetition();
 
   const allFlashcards = getAllAnkiCards();
@@ -473,7 +475,7 @@ function SolveCardView({
             </p>
           )}
           <Link
-            to={`/problem/${problem.id}`}
+            to={`/${category}/problem/${problem.id}`}
             className="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:text-blue-300"
           >
             View full problem
