@@ -7,13 +7,18 @@
       "description": "Core OOP design: identifying classes, attributes, methods, and relationships (has-a, is-a, uses-a)",
       "resources": [
         {
-          "title": "What are Design Patterns?",
-          "url": "https://refactoring.guru/design-patterns",
+          "title": "UML Class Diagram - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/unified-modeling-language-uml-class-diagrams/",
           "type": "article"
         },
         {
-          "title": "OOP Concepts in Java",
-          "url": "https://www.geeksforgeeks.org/object-oriented-programming-oops-concept-in-java/",
+          "title": "Top OOAD Interview Questions - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/top-ooad-interview-questions-and-answers/",
+          "type": "article"
+        },
+        {
+          "title": "Object Diagrams (UML) - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/unified-modeling-language-uml-object-diagrams/",
           "type": "article"
         }
       ]
@@ -25,13 +30,18 @@
       "description": "Systems where objects transition through well-defined states with specific triggers and guards",
       "resources": [
         {
-          "title": "State Pattern",
-          "url": "https://refactoring.guru/design-patterns/state",
+          "title": "Vending Machine Design (State Pattern) - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/vending-machine-low-level-design/",
           "type": "article"
         },
         {
-          "title": "State Design Pattern",
-          "url": "https://www.baeldung.com/java-state-design-pattern",
+          "title": "State Design Pattern - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/state-design-pattern/",
+          "type": "article"
+        },
+        {
+          "title": "State Pattern - Refactoring Guru",
+          "url": "https://refactoring.guru/design-patterns/state",
           "type": "article"
         }
       ]
@@ -43,12 +53,12 @@
       "description": "Interchangeable algorithms or policies selected at runtime (pricing, allocation, scheduling)",
       "resources": [
         {
-          "title": "Strategy Pattern",
+          "title": "Strategy Pattern - Refactoring Guru",
           "url": "https://refactoring.guru/design-patterns/strategy",
           "type": "article"
         },
         {
-          "title": "Strategy Pattern in Java",
+          "title": "Strategy Pattern in Java - Baeldung",
           "url": "https://www.baeldung.com/java-strategy-pattern",
           "type": "article"
         }
@@ -61,12 +71,12 @@
       "description": "Publish-subscribe, event listeners, and notification systems with decoupled producers and consumers",
       "resources": [
         {
-          "title": "Observer Pattern",
+          "title": "Observer Pattern - Refactoring Guru",
           "url": "https://refactoring.guru/design-patterns/observer",
           "type": "article"
         },
         {
-          "title": "Observer Pattern in Java",
+          "title": "Observer Pattern in Java - Baeldung",
           "url": "https://www.baeldung.com/java-observer-pattern",
           "type": "article"
         }
@@ -79,12 +89,17 @@
       "description": "Object creation patterns: Factory Method, Abstract Factory, Builder, Singleton, Prototype",
       "resources": [
         {
-          "title": "Factory Method Pattern",
+          "title": "Factory Method Pattern - Refactoring Guru",
           "url": "https://refactoring.guru/design-patterns/factory-method",
           "type": "article"
         },
         {
-          "title": "Abstract Factory Pattern",
+          "title": "Factory Design Pattern in Java - Baeldung",
+          "url": "https://www.baeldung.com/java-factory-pattern",
+          "type": "article"
+        },
+        {
+          "title": "Abstract Factory Pattern - Refactoring Guru",
           "url": "https://refactoring.guru/design-patterns/abstract-factory",
           "type": "article"
         }
@@ -97,17 +112,17 @@
       "description": "Composing objects to extend behavior dynamically: Decorator, Adapter, Composite, Proxy",
       "resources": [
         {
-          "title": "Decorator Pattern",
+          "title": "Decorator Pattern - Refactoring Guru",
           "url": "https://refactoring.guru/design-patterns/decorator",
           "type": "article"
         },
         {
-          "title": "Adapter Pattern",
+          "title": "Adapter Pattern - Refactoring Guru",
           "url": "https://refactoring.guru/design-patterns/adapter",
           "type": "article"
         },
         {
-          "title": "Proxy Pattern",
+          "title": "Proxy Pattern - Refactoring Guru",
           "url": "https://refactoring.guru/design-patterns/proxy",
           "type": "article"
         }
@@ -120,13 +135,18 @@
       "description": "Thread safety, locks, producer-consumer, connection pools, and concurrent data structures",
       "resources": [
         {
-          "title": "Java Concurrency Guide",
-          "url": "https://www.baeldung.com/java-concurrency",
+          "title": "Producer-Consumer Problem in Java - Baeldung",
+          "url": "https://www.baeldung.com/java-producer-consumer-problem",
           "type": "article"
         },
         {
-          "title": "Java Synchronization",
-          "url": "https://www.baeldung.com/java-synchronized",
+          "title": "Producer-Consumer Solution using Threads - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/java/producer-consumer-solution-using-threads-java/",
+          "type": "article"
+        },
+        {
+          "title": "Thread Pools in Java - Baeldung",
+          "url": "https://www.baeldung.com/thread-pool-java-and-guava",
           "type": "article"
         }
       ]
@@ -138,14 +158,19 @@
       "description": "Turn-based or real-time game logic: board state, players, rules engine, move validation",
       "resources": [
         {
-          "title": "Game Programming Patterns",
-          "url": "https://gameprogrammingpatterns.com/",
+          "title": "Component Pattern - Game Programming Patterns",
+          "url": "https://gameprogrammingpatterns.com/component.html",
           "type": "article"
         },
         {
-          "title": "State Pattern for Games",
-          "url": "https://refactoring.guru/design-patterns/state",
+          "title": "Update Method - Game Programming Patterns",
+          "url": "https://gameprogrammingpatterns.com/update-method.html",
           "type": "article"
+        },
+        {
+          "title": "Game Programming Patterns - Full Book",
+          "url": "https://gameprogrammingpatterns.com/",
+          "type": "docs"
         }
       ]
     },
@@ -156,13 +181,18 @@
       "description": "Reservation management, availability tracking, conflict detection, and capacity planning",
       "resources": [
         {
-          "title": "Builder Pattern",
-          "url": "https://refactoring.guru/design-patterns/builder",
+          "title": "Hotel Reservation System Design - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/system-design-of-airbnb-hotel-reservation-system/",
           "type": "article"
         },
         {
-          "title": "Repository Pattern in Java",
-          "url": "https://www.baeldung.com/java-dao-pattern",
+          "title": "Design Online Hotel Booking (OYO) - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/design-online-hotel-booking-system-like-oyo-rooms/",
+          "type": "article"
+        },
+        {
+          "title": "Database Design for Booking Systems - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/dbms/how-to-design-a-database-for-booking-and-reservation-systems/",
           "type": "article"
         }
       ]
@@ -174,13 +204,18 @@
       "description": "Encapsulating requests as objects, undo/redo, and passing requests through handler chains",
       "resources": [
         {
-          "title": "Command Pattern",
+          "title": "Command Pattern - Refactoring Guru",
           "url": "https://refactoring.guru/design-patterns/command",
           "type": "article"
         },
         {
-          "title": "Chain of Responsibility",
-          "url": "https://refactoring.guru/design-patterns/chain-of-responsibility",
+          "title": "Implement Undo and Redo - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/projects/implement-undo-and-redo-features-of-a-text-editor/",
+          "type": "article"
+        },
+        {
+          "title": "Command Design Pattern - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/command-pattern/",
           "type": "article"
         }
       ]

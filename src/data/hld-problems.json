@@ -7,8 +7,13 @@
       "icon": "💾",
       "resources": [
         {
-          "title": "System Design Primer - Database",
-          "url": "https://github.com/donnemartin/system-design-primer#database",
+          "title": "System Design Primer - Database & Key-Value Stores",
+          "url": "https://github.com/donnemartin/system-design-primer",
+          "type": "article"
+        },
+        {
+          "title": "Pastebin Design - System Design Primer",
+          "url": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/pastebin/README.md",
           "type": "article"
         },
         {
@@ -25,12 +30,12 @@
       "icon": "📱",
       "resources": [
         {
-          "title": "System Design Primer",
-          "url": "https://github.com/donnemartin/system-design-primer",
+          "title": "Twitter Design (Fan-Out on Write/Read) - System Design Primer",
+          "url": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/system_design/twitter/README.md",
           "type": "article"
         },
         {
-          "title": "Design News Feed System",
+          "title": "Design News Feed System - GeeksforGeeks",
           "url": "https://www.geeksforgeeks.org/design-news-feed-system-system-design/",
           "type": "article"
         }
@@ -43,13 +48,13 @@
       "icon": "💬",
       "resources": [
         {
-          "title": "System Design Primer - Asynchronism",
-          "url": "https://github.com/donnemartin/system-design-primer#asynchronism",
+          "title": "Online Chat Design - System Design Primer",
+          "url": "https://github.com/donnemartin/system-design-primer/blob/master/solutions/object_oriented_design/online_chat/online_chat.ipynb",
           "type": "article"
         },
         {
-          "title": "Design Chat System",
-          "url": "https://www.geeksforgeeks.org/design-facebook-messenger/",
+          "title": "WebSocket Architecture Best Practices",
+          "url": "https://ably.com/topic/websocket-architecture-best-practices",
           "type": "article"
         }
       ]
@@ -61,13 +66,18 @@
       "icon": "🎬",
       "resources": [
         {
-          "title": "System Design Primer - CDN",
-          "url": "https://github.com/donnemartin/system-design-primer#content-delivery-network",
+          "title": "Design YouTube - ByteByteGo",
+          "url": "https://bytebytego.com/courses/system-design-interview/design-youtube",
           "type": "article"
         },
         {
-          "title": "Design YouTube",
-          "url": "https://www.geeksforgeeks.org/design-video-sharing-service-system-design/",
+          "title": "Netflix Overall Architecture - ByteByteGo",
+          "url": "https://bytebytego.com/guides/netflixs-overall-architecture/",
+          "type": "article"
+        },
+        {
+          "title": "How YouTube Handles Video Uploads - ByteByteGo",
+          "url": "https://bytebytego.com/guides/how-does-youtube-handle-massive-video-content-upload/",
           "type": "article"
         }
       ]
@@ -79,14 +89,14 @@
       "icon": "🌐",
       "resources": [
         {
-          "title": "System Design Primer - Cache",
-          "url": "https://github.com/donnemartin/system-design-primer#cache",
+          "title": "System Design Primer - Distributed Cache & Rate Limiter",
+          "url": "https://github.com/donnemartin/system-design-primer",
           "type": "article"
         },
         {
-          "title": "Designing Data-Intensive Applications",
-          "url": "https://dataintensive.net/",
-          "type": "docs"
+          "title": "System Design Primer - Caching",
+          "url": "https://github.com/donnemartin/system-design-primer#cache",
+          "type": "article"
         }
       ]
     },
@@ -97,13 +107,13 @@
       "icon": "🔍",
       "resources": [
         {
-          "title": "System Design Primer",
-          "url": "https://github.com/donnemartin/system-design-primer",
+          "title": "Google Search Autocomplete HLD - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/googles-search-autocomplete-high-level-designhld/",
           "type": "article"
         },
         {
-          "title": "Design Search Autocomplete",
-          "url": "https://www.geeksforgeeks.org/design-autocomplete-or-typeahead-system/",
+          "title": "Build Recommendation Engine with Collaborative Filtering - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/machine-learning/build-a-recommendation-engine-with-collaborative-filtering/",
           "type": "article"
         }
       ]
@@ -115,13 +125,13 @@
       "icon": "🗺️",
       "resources": [
         {
-          "title": "System Design Primer",
-          "url": "https://github.com/donnemartin/system-design-primer",
+          "title": "Geohashing and Quadtrees for Location Services - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/geohashing-and-quadtrees-for-location-based-services/",
           "type": "article"
         },
         {
-          "title": "Design Uber",
-          "url": "https://www.geeksforgeeks.org/system-design-of-uber-app-uber-system-architecture/",
+          "title": "System Design: Uber",
+          "url": "https://www.karanpratapsingh.com/courses/system-design/uber",
           "type": "article"
         }
       ]
@@ -133,13 +143,18 @@
       "icon": "🛒",
       "resources": [
         {
-          "title": "System Design Primer",
-          "url": "https://github.com/donnemartin/system-design-primer",
+          "title": "E-commerce Architecture & System Design - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/e-commerce-architecture-system-design-for-e-commerce-website/",
           "type": "article"
         },
         {
-          "title": "Design Amazon",
-          "url": "https://www.geeksforgeeks.org/system-design-amazon-ecommerce-system/",
+          "title": "Payment Gateway: Definition & Working - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/blogs/payment-gateway/",
+          "type": "article"
+        },
+        {
+          "title": "System Design Pattern for Recurring Payments - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/system-design/system-design-pattern-for-recurring-payments/",
           "type": "article"
         }
       ]
@@ -151,13 +166,13 @@
       "icon": "📝",
       "resources": [
         {
-          "title": "System Design Primer",
-          "url": "https://github.com/donnemartin/system-design-primer",
+          "title": "Design of Google Docs (CRDT/OT) - Educative",
+          "url": "https://www.educative.io/courses/grokking-modern-system-design-interview-for-engineers-managers/7nq0pBGEB4j",
           "type": "article"
         },
         {
-          "title": "Design Google Docs",
-          "url": "https://www.geeksforgeeks.org/design-google-docs-system-design/",
+          "title": "Design Dropbox (File Sync) - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/design-dropbox-a-system-design-interview-question/",
           "type": "article"
         }
       ]
@@ -169,14 +184,14 @@
       "icon": "📊",
       "resources": [
         {
-          "title": "System Design Primer - Metrics",
-          "url": "https://github.com/donnemartin/system-design-primer",
+          "title": "System Design: Distributed Logging - DEV Community",
+          "url": "https://dev.to/surajvatsya/system-design-distributed-logging-4hf0",
           "type": "article"
         },
         {
-          "title": "Designing Data-Intensive Applications",
-          "url": "https://dataintensive.net/",
-          "type": "docs"
+          "title": "Complete Guide to the ELK Stack - Logz.io",
+          "url": "https://logz.io/learn/complete-guide-elk-stack/",
+          "type": "article"
         }
       ]
     }
