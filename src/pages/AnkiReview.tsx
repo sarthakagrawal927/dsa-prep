@@ -391,6 +391,7 @@ function SolveCardView({
   problem: Problem; index: number; total: number;
   onNext: (quality: number) => void;
 }) {
+  const { category } = useCategory();
   const { execute, output, errors, testResults, isRunning, clearOutput } = useCodeExecution();
   const { updateStatus, getStatus } = useProgress();
   const [code, setCode] = useState((problem.starterCode || ''));

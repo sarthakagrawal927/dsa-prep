@@ -20,7 +20,7 @@ function saveLocalNotes(all: Record<string, string>) {
 export function useNotes(problemId: string | undefined) {
   const { user } = useAuth();
   const [notes, setNotes] = useState('');
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   // Load notes when problem changes
   useEffect(() => {
