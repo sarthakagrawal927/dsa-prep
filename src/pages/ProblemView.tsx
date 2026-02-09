@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import Editor from '@monaco-editor/react';
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { useProblems } from '../hooks/useProblems';
 import { useProgress } from '../hooks/useProgress';
 import { useCodeExecution } from '../hooks/useCodeExecution';
@@ -10,6 +11,7 @@ import { fetchLeetCodeProblem, buildProblemFromLeetCode } from '../lib/leetcode'
 import { useCategory } from '../contexts/CategoryContext';
 import { getCategoryConfig } from '../types';
 import type { Language, SimilarQuestion } from '../types';
+import DiagramEditor from '../components/DiagramEditor';
 import {
   Play,
   RotateCcw,
@@ -32,6 +34,8 @@ import {
   Settings,
   PlusCircle,
   Link2,
+  PenTool,
+  GripVertical,
 } from 'lucide-react';
 
 export default function ProblemView() {
@@ -53,6 +57,7 @@ export default function ProblemView() {
   const [revealedHints, setRevealedHints] = useState({});
   const [revealedApproach, setRevealedApproach] = useState({});
   const [revealedCode, setRevealedCode] = useState({});
+  const [editorMode, setEditorMode] = useState<'code' | 'diagram'>(category === 'hld' ? 'diagram' : 'code');
   const [showEditor, setShowEditor] = useState(false);
   const [markers, setMarkers] = useState([]);
   const [selectedCode, setSelectedCode] = useState('');
@@ -171,9 +176,10 @@ export default function ProblemView() {
   return (
     <>
       {/* DESKTOP: side-by-side split pane */}
-      <div className="hidden md:flex h-[calc(100vh-4rem)]">
-        {/* LEFT PANE */}
-        <div className="flex w-[40%] flex-col border-r border-gray-800">
+      <div className="hidden md:block h-[calc(100vh-4rem)]">
+        <PanelGroup orientation="horizontal">
+        <Panel defaultSize={40} minSize={25}>
+          <div className="flex flex-col h-full border-r border-gray-800">
           <div className="flex-1 overflow-y-auto p-6">
             <Link
               to={`/${category}/patterns`}
@@ -195,65 +201,90 @@ export default function ProblemView() {
               setRevealedApproach={setRevealedApproach}
               setRevealedCode={setRevealedCode}
             />
+            <ResourceLinks resources={problem.resources} patternResources={pattern?.resources} />
             <NotesSection notes={notes} setNotesLocal={setNotesLocal} handleSaveNotes={handleSaveNotes} />
             <SimilarProblems problem={problem} />
           </div>
-        </div>
-
-        {/* RIGHT PANE */}
-        <div className="flex w-[60%] flex-col bg-gray-950">
-          <div className="flex-[7] min-h-0 overflow-hidden border-b border-gray-800">
-            <EditorToolbar
-              handleReset={handleReset}
-              handleRun={handleRun}
-              isRunning={isRunning}
-              language={language}
-              setLanguage={setLanguage}
-              onAskAI={() => setShowAI(!showAI)}
-              showAI={showAI}
-            />
-            <Editor
-              height="100%"
-              language={language}
-              theme="vs-dark"
-              value={code}
-              onChange={handleCodeChange}
-              onValidate={handleValidation}
-              onMount={handleEditorMount}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 14,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                padding: { top: 12 },
-                automaticLayout: true,
-                tabSize: 2,
-                wordWrap: 'on',
-              }}
-            />
           </div>
-          <div className="flex-[3] overflow-y-auto bg-gray-900">
-            {showAI ? (
-              <AIPanel ai={ai} problem={problem} code={code} language={language} selectedCode={selectedCode} />
-            ) : (
-              <>
-                <div className="flex h-9 items-center justify-between border-b border-gray-800 px-4">
-                  <span className="text-xs font-medium text-gray-400">Output</span>
-                  {markers.length > 0 && (
-                    <span className="flex items-center gap-1 text-xs text-yellow-400">
-                      <AlertTriangle className="h-3 w-3" />
-                      {markers.length} error{markers.length > 1 ? 's' : ''}
-                    </span>
+        </Panel>
+        <PanelResizeHandle className="group relative flex w-2 items-center justify-center bg-gray-900 hover:bg-gray-800 transition-colors">
+          <div className="w-0.5 h-8 rounded-full bg-gray-700 group-hover:bg-gray-500 transition-colors" />
+        </PanelResizeHandle>
+        <Panel defaultSize={60} minSize={35}>
+        <div className="flex flex-col h-full bg-gray-950">
+          <PanelGroup orientation="vertical">
+            <Panel defaultSize={70} minSize={30}>
+              <div className="flex flex-col h-full">
+                <EditorToolbar
+                  handleReset={handleReset}
+                  handleRun={handleRun}
+                  isRunning={isRunning}
+                  language={language}
+                  setLanguage={setLanguage}
+                  onAskAI={() => setShowAI(!showAI)}
+                  showAI={showAI}
+                  editorMode={editorMode}
+                  onToggleMode={() => setEditorMode(m => m === 'code' ? 'diagram' : 'code')}
+                />
+                <div className="flex-1 min-h-0">
+                  {editorMode === 'diagram' ? (
+                    <DiagramEditor problemId={problem.id} />
+                  ) : (
+                    <Editor
+                      height="100%"
+                      language={language}
+                      theme="vs-dark"
+                      value={code}
+                      onChange={handleCodeChange}
+                      onValidate={handleValidation}
+                      onMount={handleEditorMount}
+                      options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        lineNumbers: 'on',
+                        scrollBeyondLastLine: false,
+                        padding: { top: 12 },
+                        automaticLayout: true,
+                        tabSize: 2,
+                        wordWrap: 'on',
+                      }}
+                    />
                   )}
                 </div>
-                <div className="p-4">
-                  <SyntaxErrors markers={markers} />
-                  <OutputContent output={output} errors={errors} testResults={testResults} />
-                </div>
-              </>
-            )}
-          </div>
+              </div>
+            </Panel>
+            <PanelResizeHandle className="group relative flex h-2 items-center justify-center bg-gray-900 hover:bg-gray-800 transition-colors">
+              <div className="h-0.5 w-8 rounded-full bg-gray-700 group-hover:bg-gray-500 transition-colors" />
+            </PanelResizeHandle>
+            <Panel defaultSize={30} minSize={10}>
+              <div className="flex flex-col h-full overflow-y-auto bg-gray-900">
+                {showAI ? (
+                  <AIPanel ai={ai} problem={problem} code={code} language={language} selectedCode={selectedCode} />
+                ) : (
+                  <>
+                    <div className="flex h-9 items-center justify-between border-b border-gray-800 px-4">
+                      <span className="text-xs font-medium text-gray-400">Output</span>
+                      <div className="flex items-center gap-2">
+                        {markers.length > 0 && (
+                          <span className="flex items-center gap-1 text-xs text-yellow-400">
+                            <AlertTriangle className="h-3 w-3" />
+                            {markers.length} error{markers.length > 1 ? 's' : ''}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="p-4">
+                      <SyntaxErrors markers={markers} />
+                      <OutputContent output={output} errors={errors} testResults={testResults} />
+                    </div>
+                  </>
+                )}
+              </div>
+            </Panel>
+          </PanelGroup>
         </div>
+        </Panel>
+        </PanelGroup>
       </div>
 
       {/* MOBILE: problem on top, editor hidden behind toggle */}
@@ -337,6 +368,7 @@ export default function ProblemView() {
             )}
           </div>
 
+          <ResourceLinks resources={problem.resources} patternResources={pattern?.resources} />
           <NotesSection notes={notes} setNotesLocal={setNotesLocal} handleSaveNotes={handleSaveNotes} />
           <SimilarProblems problem={problem} />
         </div>
@@ -429,6 +461,35 @@ function StepBreakdown({
   );
 }
 
+/** Learning resources for the problem/pattern */
+function ResourceLinks({ resources, patternResources }: { resources?: { title: string; url: string; type?: string }[]; patternResources?: { title: string; url: string; type?: string }[] }) {
+  const all = [...(resources || []), ...(patternResources || [])];
+  if (all.length === 0) return null;
+  const typeIcons: Record<string, string> = { article: '📄', video: '🎥', course: '📚', docs: '📖' };
+  return (
+    <div className="mb-6">
+      <h2 className="mb-3 text-sm font-semibold text-gray-400 uppercase tracking-wider">
+        Learning Resources
+      </h2>
+      <div className="space-y-1.5">
+        {all.map((r, i) => (
+          <a
+            key={i}
+            href={r.url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 rounded-lg border border-gray-800 bg-gray-900/50 px-3 py-2 text-sm text-blue-400 transition-colors hover:bg-gray-800/50 hover:text-blue-300"
+          >
+            <span className="flex-shrink-0">{typeIcons[r.type || 'article'] || '🔗'}</span>
+            <span className="truncate">{r.title}</span>
+            <ExternalLink className="h-3 w-3 flex-shrink-0 text-gray-600 ml-auto" />
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Notes textarea with save button */
 function NotesSection({ notes, setNotesLocal, handleSaveNotes }) {
   return (
@@ -454,62 +515,95 @@ function NotesSection({ notes, setNotesLocal, handleSaveNotes }) {
 }
 
 /** Editor toolbar with Run and Reset buttons */
-function EditorToolbar({ handleReset, handleRun, isRunning, language, setLanguage, onAskAI, showAI }: {
+function EditorToolbar({ handleReset, handleRun, isRunning, language, setLanguage, onAskAI, showAI, editorMode, onToggleMode }: {
   handleReset: () => void; handleRun: () => void; isRunning: boolean;
   language: Language; setLanguage: (l: Language) => void;
-  onAskAI: () => void; showAI: boolean;
+  onAskAI?: () => void; showAI?: boolean;
+  editorMode?: 'code' | 'diagram'; onToggleMode?: () => void;
 }) {
   return (
     <div className="flex items-center justify-between border-b border-gray-800 px-3 sm:px-4 py-2">
       <div className="flex items-center gap-2">
-        <div className="flex items-center gap-1 rounded-md bg-gray-800 p-0.5">
+        {/* Code / Diagram toggle */}
+        {onToggleMode && (
+          <div className="flex items-center gap-1 rounded-md bg-gray-800 p-0.5">
+            <button
+              onClick={() => editorMode !== 'code' && onToggleMode()}
+              className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
+                editorMode === 'code' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              <Code2 className="h-3 w-3" />
+              Code
+            </button>
+            <button
+              onClick={() => editorMode !== 'diagram' && onToggleMode()}
+              className={`flex items-center gap-1 rounded px-2 py-1 text-xs font-medium transition-colors ${
+                editorMode === 'diagram' ? 'bg-orange-600 text-white' : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              <PenTool className="h-3 w-3" />
+              Draw
+            </button>
+          </div>
+        )}
+        {/* Language selector (only when in code mode) */}
+        {editorMode !== 'diagram' && (
+          <div className="flex items-center gap-1 rounded-md bg-gray-800 p-0.5">
+            <button
+              onClick={() => setLanguage('javascript')}
+              className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                language === 'javascript' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              JS
+            </button>
+            <button
+              onClick={() => setLanguage('typescript')}
+              className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
+                language === 'typescript' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'
+              }`}
+            >
+              TS
+            </button>
+          </div>
+        )}
+        {onAskAI && (
           <button
-            onClick={() => setLanguage('javascript')}
-            className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-              language === 'javascript' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
+            onClick={onAskAI}
+            className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
+              showAI ? 'bg-purple-600 text-white' : 'text-purple-400 hover:bg-purple-500/20'
             }`}
           >
-            JS
+            <Bot className="h-3.5 w-3.5" />
+            AI
           </button>
-          <button
-            onClick={() => setLanguage('typescript')}
-            className={`rounded px-2 py-1 text-xs font-medium transition-colors ${
-              language === 'typescript' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'
-            }`}
-          >
-            TS
-          </button>
-        </div>
-        <button
-          onClick={onAskAI}
-          className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition-colors ${
-            showAI ? 'bg-purple-600 text-white' : 'text-purple-400 hover:bg-purple-500/20'
-          }`}
-        >
-          <Bot className="h-3.5 w-3.5" />
-          AI
-        </button>
+        )}
       </div>
       <div className="flex items-center gap-2">
-        <button
-          onClick={handleReset}
-          className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-200"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          Reset
-        </button>
-        <button
-          onClick={handleRun}
-          disabled={isRunning}
-          className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
-        >
-          {isRunning ? (
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          ) : (
-            <Play className="h-3.5 w-3.5" />
-          )}
-          Run
-        </button>
+        {editorMode !== 'diagram' && (
+          <>
+            <button
+              onClick={handleReset}
+              className="flex items-center gap-1 rounded-md px-2 py-1 text-xs text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-200"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              Reset
+            </button>
+            <button
+              onClick={handleRun}
+              disabled={isRunning}
+              className="flex items-center gap-1.5 rounded-md bg-green-600 px-3 py-1 text-xs font-medium text-white transition-colors hover:bg-green-700 disabled:opacity-50"
+            >
+              {isRunning ? (
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              ) : (
+                <Play className="h-3.5 w-3.5" />
+              )}
+              Run
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -908,7 +1002,7 @@ function RevealButton({
   revealed,
   onReveal,
   content,
-  isCode,
+  isCode = false,
   bgColor,
   textColor,
   borderColor,
@@ -945,7 +1039,8 @@ function RevealButton({
 
 function SimilarProblems({ problem }: { problem: any }) {
   const navigate = useNavigate();
-  const { getBySlug, getByPattern, addCustomProblem, patterns } = useProblems();
+  const { category } = useCategory();
+  const { getBySlug, getByPattern, addCustomProblem, patterns } = useProblems(category);
   const [importing, setImporting] = useState<string | null>(null);
 
   // Same-pattern problems (excluding current)
