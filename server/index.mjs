@@ -8,7 +8,7 @@ app.use(express.json({ limit: '1mb' }));
 
 const PORT = process.env.PORT || 3456;
 
-// CLI tool configurations
+// CLI tool configurations — tested against actual CLI interfaces
 const CLI_TOOLS = {
   claude: {
     command: 'claude',
@@ -18,6 +18,7 @@ const CLI_TOOLS = {
       return args;
     },
     inputMode: 'stdin',
+    embedSystemPrompt: false,
     parseStream: (line, emit) => {
       const json = JSON.parse(line);
       if (json.type === 'assistant' && json.message?.content) {
@@ -33,44 +34,27 @@ const CLI_TOOLS = {
   },
 
   codex: {
+    // codex exec --json outputs JSONL with item.completed events
     command: 'codex',
-    buildArgs: (systemPrompt) => {
-      const args = ['exec', '--json'];
-      if (systemPrompt) args.push('--instructions', systemPrompt);
-      return args;
-    },
+    buildArgs: () => ['exec', '--json'],
     inputMode: 'stdin',
+    embedSystemPrompt: true,
     parseStream: (line, emit) => {
       const json = JSON.parse(line);
-      if (json.type === 'message' && json.content) emit(json.content);
-      if (json.output_text) emit(json.output_text);
-      if (json.type === 'response.output_text.delta' && json.delta) emit(json.delta);
-      if (json.type === 'response.completed' && json.response?.output_text) {
-        emit(json.response.output_text);
+      // codex outputs: {"type":"item.completed","item":{"type":"agent_message","text":"..."}}
+      if (json.type === 'item.completed' && json.item?.type === 'agent_message' && json.item.text) {
+        emit(json.item.text);
       }
     },
   },
 
   gemini: {
+    // gemini CLI outputs plain text to stdout, no JSON streaming
     command: 'gemini',
-    buildArgs: (systemPrompt) => {
-      const args = ['--output-format', 'stream-json'];
-      if (systemPrompt) args.push('--system-instruction', systemPrompt);
-      return args;
-    },
+    buildArgs: () => [],
     inputMode: 'arg',
-    parseStream: (line, emit) => {
-      const json = JSON.parse(line);
-      if (json.type === 'assistant' && json.message?.content) {
-        for (const block of json.message.content) {
-          if (block.type === 'text' && block.text) emit(block.text);
-        }
-        return;
-      }
-      if (json.type === 'content_block_delta' && json.delta?.text) emit(json.delta.text);
-      if (json.partialText) emit(json.partialText);
-      if (json.text && !json.type) emit(json.text);
-    },
+    embedSystemPrompt: true,
+    parseStream: null, // plain text mode — no JSON parsing
   },
 };
 
@@ -91,9 +75,14 @@ app.post('/api/chat', (req, res) => {
     return res.status(400).json({ error: `Unknown provider: ${toolName}. Available: ${Object.keys(CLI_TOOLS).join(', ')}` });
   }
 
-  const prompt = messages
+  // Build prompt — embed system prompt for tools that don't have a dedicated flag
+  let prompt = messages
     .map(m => `${m.role === 'user' ? 'User' : 'Assistant'}: ${m.content}`)
     .join('\n\n');
+
+  if (cliTool.embedSystemPrompt && systemPrompt) {
+    prompt = `System instructions: ${systemPrompt}\n\n${prompt}`;
+  }
 
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
@@ -115,8 +104,20 @@ app.post('/api/chat', (req, res) => {
 
   let buffer = '';
   let textSent = false;
+  const isPlainText = !cliTool.parseStream;
 
   proc.stdout.on('data', (data) => {
+    if (isPlainText) {
+      // Plain text mode — forward stdout chunks directly
+      const text = data.toString();
+      if (text) {
+        textSent = true;
+        res.write(`data: ${JSON.stringify({ text })}\n\n`);
+      }
+      return;
+    }
+
+    // JSON streaming mode
     buffer += data.toString();
     const lines = buffer.split('\n');
     buffer = lines.pop() || '';
@@ -129,6 +130,7 @@ app.post('/api/chat', (req, res) => {
           res.write(`data: ${JSON.stringify({ text })}\n\n`);
         });
       } catch {
+        // Non-JSON line — emit as plain text if it doesn't look like JSON
         const trimmed = line.trim();
         if (trimmed && !trimmed.startsWith('{') && !trimmed.startsWith('[')) {
           textSent = true;
@@ -144,15 +146,20 @@ app.post('/api/chat', (req, res) => {
   });
 
   proc.on('close', (code) => {
+    // Flush remaining buffer
     if (buffer.trim()) {
-      try {
-        cliTool.parseStream(buffer, (text) => {
-          textSent = true;
-          res.write(`data: ${JSON.stringify({ text })}\n\n`);
-        });
-      } catch {
-        if (!textSent) {
-          res.write(`data: ${JSON.stringify({ text: buffer.trim() })}\n\n`);
+      if (isPlainText) {
+        res.write(`data: ${JSON.stringify({ text: buffer.trim() })}\n\n`);
+      } else {
+        try {
+          cliTool.parseStream(buffer, (text) => {
+            textSent = true;
+            res.write(`data: ${JSON.stringify({ text })}\n\n`);
+          });
+        } catch {
+          if (!textSent) {
+            res.write(`data: ${JSON.stringify({ text: buffer.trim() })}\n\n`);
+          }
         }
       }
     }

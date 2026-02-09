@@ -87,10 +87,12 @@ export default function Layout() {
                   <Grid3X3 className="h-4 w-4" />
                   {activeCategory.id === 'behavioral' ? 'Categories' : 'Patterns'}
                 </NavLink>
-                <NavLink to={`${basePath}/review`} className={linkClass}>
-                  <Brain className="h-4 w-4" />
-                  Review
-                </NavLink>
+                {(activeCategory.id === 'dsa' || activeCategory.id === 'hld') && (
+                  <NavLink to={`${basePath}/review`} className={linkClass}>
+                    <Brain className="h-4 w-4" />
+                    Review
+                  </NavLink>
+                )}
                 <NavLink to={`${basePath}/import`} className={linkClass}>
                   <PlusCircle className="h-4 w-4" />
                   Import
@@ -119,8 +121,13 @@ export default function Layout() {
                   <NavLink to={`${basePath}/patterns`} className={linkClass}>
                     <Grid3X3 className="h-4 w-4" />
                   </NavLink>
-                  <NavLink to={`${basePath}/review`} className={linkClass}>
-                    <Brain className="h-4 w-4" />
+                  {(activeCategory.id === 'dsa' || activeCategory.id === 'hld') && (
+                    <NavLink to={`${basePath}/review`} className={linkClass}>
+                      <Brain className="h-4 w-4" />
+                    </NavLink>
+                  )}
+                  <NavLink to={`${basePath}/import`} className={linkClass}>
+                    <PlusCircle className="h-4 w-4" />
                   </NavLink>
                 </div>
               )}
@@ -174,9 +181,15 @@ export default function Layout() {
             <Grid3X3 className="h-5 w-5" />
             <span>Patterns</span>
           </NavLink>
-          <NavLink to={`${basePath}/review`} className={bottomTabClass(`${basePath}/review`)}>
-            <Brain className="h-5 w-5" />
-            <span>Review</span>
+          {(activeCategory.id === 'dsa' || activeCategory.id === 'hld') && (
+            <NavLink to={`${basePath}/review`} className={bottomTabClass(`${basePath}/review`)}>
+              <Brain className="h-5 w-5" />
+              <span>Review</span>
+            </NavLink>
+          )}
+          <NavLink to={`${basePath}/import`} className={bottomTabClass(`${basePath}/import`)}>
+            <PlusCircle className="h-5 w-5" />
+            <span>Import</span>
           </NavLink>
         </div>
       )}

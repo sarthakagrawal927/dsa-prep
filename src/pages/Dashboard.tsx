@@ -96,7 +96,7 @@ export default function Dashboard() {
               return (
                 <Link
                   key={pattern.id}
-                  to={`/${category}/patterns`}
+                  to={`/${category}/patterns?pattern=${pattern.id}`}
                   className="group rounded-xl border border-gray-800 bg-gray-900 p-3 sm:p-4 transition-all hover:border-gray-700 hover:bg-gray-800/80"
                 >
                   <div className="mb-2 text-2xl">{pattern.icon}</div>

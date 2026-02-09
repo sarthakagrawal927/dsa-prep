@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useProblems } from '../hooks/useProblems';
 import { useCategory } from '../contexts/CategoryContext';
 import type { Problem } from '../types';
@@ -15,6 +15,7 @@ import {
   Loader2,
   AlertTriangle,
   Sparkles,
+  ArrowLeft,
 } from 'lucide-react';
 
 interface SuccessInfo {
@@ -99,6 +100,13 @@ export default function ImportProblem() {
 
   return (
     <div className="mx-auto max-w-xl px-4 py-6 sm:py-8 sm:px-6 lg:px-8">
+      <Link
+        to={`/${category}`}
+        className="mb-4 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Dashboard
+      </Link>
       <div className="mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-white">Import Problem</h1>
         <p className="mt-1 text-sm sm:text-base text-gray-400">

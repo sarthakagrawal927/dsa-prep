@@ -60,13 +60,15 @@ export function useSpacedRepetition() {
     };
   }, [ankiData]);
 
-  const getDueCards = useCallback((allCards: AnkiCardWithMeta[]): AnkiCardWithMeta[] => {
+  const getDueCards = useCallback((allCards: AnkiCardWithMeta[], dailyLimit = 10): AnkiCardWithMeta[] => {
     const now = new Date();
-    return allCards.filter(card => {
+    const due = allCards.filter(card => {
       const state = (ankiData as any)[card.id];
       if (!state) return true;
       return new Date(state.nextReview) <= now;
     });
+    // Cap at daily limit to avoid overwhelming sessions
+    return due.slice(0, dailyLimit);
   }, [ankiData]);
 
   const reviewCard = useCallback((cardId: string, quality: number) => {

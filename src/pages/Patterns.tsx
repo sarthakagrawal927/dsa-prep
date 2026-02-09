@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import { useState, useRef, useCallback } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useProblems } from '../hooks/useProblems';
 import { useProgress } from '../hooks/useProgress';
 import { useCategory } from '../contexts/CategoryContext';
@@ -19,19 +19,33 @@ export default function Patterns() {
   const catConfig = getCategoryConfig(category);
   const { patterns, problems, getByPattern, search } = useProblems(category);
   const { getStatus } = useProgress();
-  const [searchParams] = useSearchParams();
-  const expandPattern = searchParams.get('pattern');
+  const location = useLocation();
+  const expandPattern = new URLSearchParams(location.search).get('pattern');
   const [query, setQuery] = useState('');
-  const [expandedPatterns, setExpandedPatterns] = useState(() =>
-    expandPattern ? { [expandPattern]: true } : {}
-  );
+  const [toggledPatterns, setToggledPatterns] = useState<Record<string, boolean>>({});
 
-  const togglePattern = (patternId) => {
-    setExpandedPatterns(prev => ({
+  const isPatternExpanded = (patternId: string) => {
+    // URL param always wins — if ?pattern=X, that pattern is expanded
+    if (expandPattern === patternId) return true;
+    // Otherwise use manual toggle state
+    return !!toggledPatterns[patternId];
+  };
+
+  const togglePattern = (patternId: string) => {
+    setToggledPatterns(prev => ({
       ...prev,
       [patternId]: !prev[patternId],
     }));
   };
+
+  // Callback ref: scrolls the URL-targeted pattern into view when it mounts
+  const hasScrolledRef = useRef<string | null>(null);
+  const scrollIntoViewRef = useCallback((el: HTMLDivElement | null) => {
+    if (el && expandPattern && hasScrolledRef.current !== expandPattern) {
+      hasScrolledRef.current = expandPattern;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  }, [expandPattern]);
 
   const filteredProblems = query ? search(query) : null;
 
@@ -70,7 +84,7 @@ export default function Patterns() {
           const patternProblems = query
             ? filteredProblems.filter(p => p.pattern === pattern.id)
             : getByPattern(pattern.id);
-          const isExpanded = expandedPatterns[pattern.id] || (query && patternProblems.length > 0);
+          const isExpanded = isPatternExpanded(pattern.id) || (query && patternProblems.length > 0);
           const solvedCount = patternProblems.filter(
             p => getStatus(p.id) === 'solved' || getStatus(p.id) === 'mastered'
           ).length;
@@ -81,6 +95,7 @@ export default function Patterns() {
           return (
             <div
               key={pattern.id}
+              ref={expandPattern === pattern.id ? scrollIntoViewRef : undefined}
               className="overflow-hidden rounded-xl border border-gray-800 bg-gray-900"
             >
               {/* Pattern Header */}

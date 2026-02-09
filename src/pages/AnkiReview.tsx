@@ -6,7 +6,7 @@ import { useSpacedRepetition } from '../hooks/useSpacedRepetition';
 import { useCodeExecution } from '../hooks/useCodeExecution';
 import { useProgress } from '../hooks/useProgress';
 import { useCategory } from '../contexts/CategoryContext';
-import { MCQ_CARDS } from '../data/mcq-cards';
+import { MCQ_CARDS_BY_CATEGORY } from '../data/mcq-cards';
 import type { MCQCard, Problem, Language } from '../types';
 import {
   RotateCcw,
@@ -18,11 +18,11 @@ import {
   Sparkles,
   Shuffle,
   ListChecks,
-  Layers,
   Code2,
   Play,
   Loader2,
   ExternalLink,
+  ArrowLeft,
 } from 'lucide-react';
 
 type ReviewMode = 'mcq' | 'flashcard' | 'solve';
@@ -41,12 +41,17 @@ export default function AnkiReview() {
   const { getAllAnkiCards, patterns, getById } = useProblems(category);
   const { getDueCards, reviewCard, getReviewStats } = useSpacedRepetition();
 
+  // Categories with review: DSA (solve + MCQ), HLD (MCQ only)
+  const hasReview = category === 'dsa' || category === 'hld';
+  const hasSolve = category === 'dsa';
+  const categoryMCQ = MCQ_CARDS_BY_CATEGORY[category] || [];
+
   const allFlashcards = getAllAnkiCards();
   const [patternFilter, setPatternFilter] = useState('all');
   const [showFilter, setShowFilter] = useState(false);
-  const [mode, setMode] = useState<ReviewMode>('mcq');
+  const [mode, setMode] = useState<ReviewMode>(hasSolve ? 'mcq' : 'mcq');
 
-  // Flashcard state
+  // Flashcard state (kept for spaced repetition tracking)
   const filteredFlashcards = useMemo(() => {
     if (patternFilter === 'all') return allFlashcards;
     return allFlashcards.filter(c => c.pattern === patternFilter);
@@ -58,12 +63,12 @@ export default function AnkiReview() {
 
   // MCQ state
   const filteredMCQ = useMemo(() => {
-    if (patternFilter === 'all') return MCQ_CARDS;
+    if (patternFilter === 'all') return categoryMCQ;
     const problemIds = new Set(
       allFlashcards.filter(c => c.pattern === patternFilter).map(c => c.problemId)
     );
-    return MCQ_CARDS.filter(c => problemIds.has(c.problemId));
-  }, [patternFilter, allFlashcards]);
+    return categoryMCQ.filter(c => problemIds.has(c.problemId));
+  }, [patternFilter, allFlashcards, categoryMCQ]);
 
   const [shuffledMCQ, setShuffledMCQ] = useState<MCQCard[]>([]);
   const [mcqIndex, setMcqIndex] = useState(0);
@@ -197,8 +202,43 @@ export default function AnkiReview() {
     setSessionComplete(false);
   };
 
+  // No review for LLD and Behavioral
+  if (!hasReview) {
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-6 sm:py-8 sm:px-6 lg:px-8">
+        <Link
+          to={`/${category}`}
+          className="mb-4 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Dashboard
+        </Link>
+        <div className="rounded-2xl border border-gray-800 bg-gray-900 p-8 sm:p-12 text-center">
+          <Brain className="mx-auto mb-4 h-10 w-10 sm:h-12 sm:w-12 text-gray-600" />
+          <h2 className="text-lg sm:text-xl font-semibold text-white">Review not available</h2>
+          <p className="mt-2 text-sm sm:text-base text-gray-400">
+            Spaced repetition review is not available for this category yet. Check out the patterns and problems instead.
+          </p>
+          <Link
+            to={`/${category}/patterns`}
+            className="mt-6 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          >
+            View Patterns
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-3xl px-4 py-6 sm:py-8 sm:px-6 lg:px-8">
+      <Link
+        to={`/${category}`}
+        className="mb-4 inline-flex items-center gap-1 text-sm text-gray-400 hover:text-gray-200"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Dashboard
+      </Link>
       {/* Header */}
       <div className="mb-6 sm:mb-8 flex items-start sm:items-center justify-between gap-3">
         <div className="min-w-0">
@@ -214,36 +254,29 @@ export default function AnkiReview() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Mode Toggle */}
-          <div className="flex items-center gap-1 rounded-lg bg-gray-800 p-0.5">
-            <button
-              onClick={() => { setMode('mcq'); handleRestart(); }}
-              className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-                mode === 'mcq' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <ListChecks className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Quiz</span>
-            </button>
-            <button
-              onClick={() => { setMode('flashcard'); handleRestart(); }}
-              className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-                mode === 'flashcard' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Layers className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Cards</span>
-            </button>
-            <button
-              onClick={() => { setMode('solve'); handleRestart(); }}
-              className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
-                mode === 'solve' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-gray-200'
-              }`}
-            >
-              <Code2 className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Solve</span>
-            </button>
-          </div>
+          {/* Mode Toggle - only show if more than one mode */}
+          {hasSolve && (
+            <div className="flex items-center gap-1 rounded-lg bg-gray-800 p-0.5">
+              <button
+                onClick={() => { setMode('mcq'); handleRestart(); }}
+                className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                  mode === 'mcq' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                <ListChecks className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Quiz</span>
+              </button>
+              <button
+                onClick={() => { setMode('solve'); handleRestart(); }}
+                className={`flex items-center gap-1 rounded-md px-2 py-1.5 text-xs font-medium transition-colors ${
+                  mode === 'solve' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-gray-200'
+                }`}
+              >
+                <Code2 className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Solve</span>
+              </button>
+            </div>
+          )}
           {/* Filter */}
           <div className="relative">
             <button
@@ -356,20 +389,7 @@ export default function AnkiReview() {
             onNext={handleMCQNext}
           />
         ) : null
-      ) : mode === 'flashcard' ? (
-        dueCards.length === 0 ? (
-          <EmptyState mode="flashcard" />
-        ) : currentFlashcard ? (
-          <FlashcardView
-            card={currentFlashcard}
-            index={fcIndex}
-            total={dueCards.length}
-            isFlipped={isFlipped}
-            onFlip={handleFlip}
-            onReview={handleFlashcardReview}
-          />
-        ) : null
-      ) : (
+      ) : mode === 'solve' ? (
         solveProblems.length === 0 ? (
           <EmptyState mode="solve" />
         ) : currentSolveProblem ? (
@@ -380,7 +400,7 @@ export default function AnkiReview() {
             onNext={handleSolveNext}
           />
         ) : null
-      )}
+      ) : null}
     </div>
   );
 }

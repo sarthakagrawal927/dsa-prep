@@ -1,6 +1,7 @@
 import type { MCQCard } from '../types';
 
-export const MCQ_CARDS: MCQCard[] = [
+// ─── DSA MCQ Cards ──────────────────────────────────────────────────────────
+export const DSA_MCQ_CARDS: MCQCard[] = [
   // ===== ARRAYS & HASHING =====
   { id: 'two-sum-mcq-1', problemId: 'two-sum', difficulty: 'medium',
     question: 'Which approach reduces Two Sum from O(n^2) to O(n)?',
@@ -541,3 +542,219 @@ export const MCQ_CARDS: MCQCard[] = [
     options: ['Both null: true. One null: false. Values differ: false.', 'Both null: false. One null: true.', 'Only check leaf nodes', 'Compare level by level with BFS'],
     correctIndex: 0, explanation: 'Both null = same (true). One null, other not = different (false). Both non-null with different values = false. Otherwise recurse on left and right.' },
 ];
+
+// ─── HLD MCQ Cards ──────────────────────────────────────────────────────────
+export const HLD_MCQ_CARDS: MCQCard[] = [
+  // === Storage & Retrieval ===
+  { id: 'hld-url-shortener-mcq-1', problemId: 'hld-url-shortener', difficulty: 'medium',
+    question: 'Which encoding scheme produces short, URL-safe keys for a URL shortener?',
+    options: ['Base64', 'Base62 (a-z, A-Z, 0-9)', 'Hexadecimal (Base16)', 'UUID v4'],
+    correctIndex: 1, explanation: 'Base62 uses only alphanumeric characters (62 chars), all URL-safe. A 7-char Base62 key gives 62^7 ≈ 3.5 trillion unique URLs.' },
+  { id: 'hld-url-shortener-mcq-2', problemId: 'hld-url-shortener', difficulty: 'hard',
+    question: 'What is the typical read/write ratio for a URL shortener like TinyURL?',
+    options: ['1:1', '10:1', '100:1', '1000:1'],
+    correctIndex: 3, explanation: 'URL shorteners are extremely read-heavy. A URL is created once but redirected thousands of times. This means caching is critical for performance.' },
+  { id: 'hld-url-shortener-mcq-3', problemId: 'hld-url-shortener', difficulty: 'hard',
+    question: 'How does a Key Generation Service (KGS) avoid hash collisions in a URL shortener?',
+    options: ['Retry with different hash functions', 'Pre-generate unique keys and assign them on demand', 'Use auto-incrementing IDs', 'Check the database before each insertion'],
+    correctIndex: 1, explanation: 'A KGS pre-generates unique keys and stores them. When a URL is created, it assigns the next available key. This eliminates collision checking entirely.' },
+
+  { id: 'hld-pastebin-mcq-1', problemId: 'hld-pastebin', difficulty: 'medium',
+    question: 'Why use Object Storage (S3) instead of a database for storing paste content in Pastebin?',
+    options: ['S3 is faster for reads', 'Object storage handles large blobs cheaply and scales independently from metadata', 'Databases cannot store text', 'S3 supports SQL queries'],
+    correctIndex: 1, explanation: 'Object storage (S3) is optimized for large blobs at low cost. Metadata (title, author, expiry) stays in the database. This separates concerns and scales each independently.' },
+
+  { id: 'hld-key-value-store-mcq-1', problemId: 'hld-key-value-store', difficulty: 'hard',
+    question: 'What does the CAP theorem state about distributed systems?',
+    options: ['You can have Consistency, Availability, and Partition tolerance simultaneously', 'You can only pick 2 of: Consistency, Availability, Partition tolerance', 'Consistency always beats Availability', 'Partition tolerance is optional'],
+    correctIndex: 1, explanation: 'The CAP theorem states you can only guarantee 2 of the 3. Since network partitions are unavoidable, you choose between CP (consistency) and AP (availability).' },
+  { id: 'hld-key-value-store-mcq-2', problemId: 'hld-key-value-store', difficulty: 'hard',
+    question: 'Which technique distributes keys across nodes while minimizing data movement when nodes join or leave?',
+    options: ['Hash modulo N', 'Consistent Hashing', 'Random assignment', 'Range-based partitioning'],
+    correctIndex: 1, explanation: 'Consistent hashing maps keys and nodes onto a ring. When a node joins/leaves, only K/N keys are remapped on average, compared to nearly all keys with hash mod N.' },
+
+  // === Distributed Infrastructure ===
+  { id: 'hld-rate-limiter-mcq-1', problemId: 'hld-rate-limiter', difficulty: 'medium',
+    question: 'Which rate limiting algorithm allows short bursts up to a maximum capacity?',
+    options: ['Fixed Window Counter', 'Leaky Bucket', 'Token Bucket', 'Sliding Window Log'],
+    correctIndex: 2, explanation: 'Token Bucket adds tokens at a fixed rate up to a max capacity. Requests consume tokens. A full bucket allows a burst of requests. Leaky Bucket enforces a smooth constant rate.' },
+  { id: 'hld-rate-limiter-mcq-2', problemId: 'hld-rate-limiter', difficulty: 'hard',
+    question: 'What is the main challenge of distributed rate limiting across multiple servers?',
+    options: ['Network latency', 'Synchronizing counters across nodes without a central bottleneck', 'Supporting multiple algorithms', 'Logging rate limit events'],
+    correctIndex: 1, explanation: 'Each server may see different request counts. Using Redis as a centralized counter works but adds latency. Sliding window counters in Redis with Lua scripts provide atomic, distributed rate limiting.' },
+
+  { id: 'hld-distributed-cache-mcq-1', problemId: 'hld-distributed-cache', difficulty: 'medium',
+    question: 'Which cache eviction policy removes the item that was used least recently?',
+    options: ['FIFO (First In First Out)', 'LRU (Least Recently Used)', 'LFU (Least Frequently Used)', 'Random Replacement'],
+    correctIndex: 1, explanation: 'LRU evicts the item whose last access was the longest ago. It is the most common eviction policy, balancing simplicity and effectiveness.' },
+  { id: 'hld-distributed-cache-mcq-2', problemId: 'hld-distributed-cache', difficulty: 'hard',
+    question: 'What is the "thundering herd" problem in caching?',
+    options: ['Cache grows too large', 'When a cache key expires, many concurrent requests hit the database simultaneously', 'Cache nodes fail in sequence', 'Hot keys cause memory overflow'],
+    correctIndex: 1, explanation: 'When a popular cache key expires, all concurrent requests miss the cache and stampede to the database. Solutions: cache locking (only one request rebuilds), staggered TTLs, or early refresh.' },
+
+  // === Social Media & Feeds ===
+  { id: 'hld-twitter-mcq-1', problemId: 'hld-twitter', difficulty: 'hard',
+    question: 'In Twitter\'s "fan-out on write" approach, when is the timeline computed?',
+    options: ['When a user opens their feed', 'When a tweet is posted, it is pushed to all followers\' timelines', 'Once per hour via batch processing', 'Only when explicitly refreshed'],
+    correctIndex: 1, explanation: 'Fan-out on write pre-computes timelines at post time. A tweet is written to every follower\'s timeline cache. This makes reads fast but writes expensive, especially for users with millions of followers.' },
+  { id: 'hld-twitter-mcq-2', problemId: 'hld-twitter', difficulty: 'hard',
+    question: 'Why does Twitter use a hybrid fan-out approach for celebrity users?',
+    options: ['Celebrities post more often', 'Fan-out on write for millions of followers is too slow and resource-intensive', 'Celebrity tweets need different ranking', 'Legal compliance requirements'],
+    correctIndex: 1, explanation: 'A celebrity with 50M followers would require 50M writes per tweet. Instead, celebrity tweets are merged at read time (fan-out on read). Regular users use fan-out on write. This hybrid approach balances cost.' },
+
+  { id: 'hld-instagram-mcq-1', problemId: 'hld-instagram', difficulty: 'medium',
+    question: 'What is the primary purpose of a CDN in Instagram\'s architecture?',
+    options: ['Database replication', 'Serving photos and videos from edge servers closest to users', 'Running ML models', 'User authentication'],
+    correctIndex: 1, explanation: 'CDN edge servers cache and serve static content (photos/videos) from locations geographically close to users, dramatically reducing latency and offloading origin servers.' },
+
+  { id: 'hld-tiktok-mcq-1', problemId: 'hld-tiktok', difficulty: 'hard',
+    question: 'What makes TikTok\'s recommendation system different from traditional social media feeds?',
+    options: ['It uses a social graph', 'Content-based recommendations from watch behavior, not follow graph', 'It only shows verified content', 'It uses chronological ordering'],
+    correctIndex: 1, explanation: 'TikTok\'s "For You" page relies on content-based signals (watch time, replays, likes) rather than who you follow. This allows new creators to go viral and creates a highly engaging discovery feed.' },
+
+  // === Messaging & Real-Time ===
+  { id: 'hld-whatsapp-mcq-1', problemId: 'hld-whatsapp', difficulty: 'medium',
+    question: 'Which protocol maintains a persistent bidirectional connection for real-time messaging?',
+    options: ['HTTP long polling', 'WebSocket', 'gRPC', 'SMTP'],
+    correctIndex: 1, explanation: 'WebSocket provides full-duplex communication over a single TCP connection. Unlike HTTP, it keeps the connection open for real-time bidirectional messaging without repeated handshakes.' },
+  { id: 'hld-whatsapp-mcq-2', problemId: 'hld-whatsapp', difficulty: 'hard',
+    question: 'How does WhatsApp handle message delivery when the recipient is offline?',
+    options: ['Messages are dropped', 'Store-and-forward: messages are persisted and delivered when recipient reconnects', 'Messages are sent via SMS fallback', 'The sender is notified to retry later'],
+    correctIndex: 1, explanation: 'Messages are stored on the server until the recipient comes online. Upon reconnection, queued messages are pushed. Messages are deleted from the server after delivery confirmation.' },
+
+  { id: 'hld-notification-service-mcq-1', problemId: 'hld-notification-service', difficulty: 'medium',
+    question: 'What determines which delivery channel (push/email/SMS) to use for a notification?',
+    options: ['Random selection', 'User preferences combined with notification priority and urgency', 'Always use all channels', 'System administrator choice'],
+    correctIndex: 1, explanation: 'A notification service checks user preferences (opt-in channels), notification priority (urgent = push, digest = email), and channel availability to route through the optimal delivery path.' },
+
+  // === Streaming & Media ===
+  { id: 'hld-youtube-mcq-1', problemId: 'hld-youtube', difficulty: 'medium',
+    question: 'What is the primary purpose of video transcoding in YouTube\'s pipeline?',
+    options: ['Compressing videos to save storage', 'Converting uploaded videos into multiple resolutions and formats for different devices', 'Adding watermarks', 'Detecting copyright violations'],
+    correctIndex: 1, explanation: 'Transcoding converts a single upload into multiple formats (H.264, VP9, AV1) and resolutions (360p to 4K). This allows adaptive bitrate streaming where quality adjusts to the viewer\'s bandwidth.' },
+  { id: 'hld-youtube-mcq-2', problemId: 'hld-youtube', difficulty: 'hard',
+    question: 'What is adaptive bitrate streaming (ABR) and why is it used?',
+    options: ['Streaming at the highest quality always', 'Dynamically switching video quality based on network conditions', 'Compressing video in real-time', 'Streaming only audio when bandwidth is low'],
+    correctIndex: 1, explanation: 'ABR splits video into small chunks at different quality levels. The client monitors bandwidth and switches quality per-chunk, ensuring smooth playback even on variable networks.' },
+
+  { id: 'hld-netflix-mcq-1', problemId: 'hld-netflix', difficulty: 'hard',
+    question: 'What pattern does Netflix use to prevent cascading failures across microservices?',
+    options: ['Load balancing', 'Circuit Breaker pattern', 'Database replication', 'Caching'],
+    correctIndex: 1, explanation: 'The Circuit Breaker pattern stops calling a failing service after a threshold, returning a fallback response instead. This prevents one failing service from bringing down the entire system.' },
+
+  { id: 'hld-spotify-mcq-1', problemId: 'hld-spotify', difficulty: 'medium',
+    question: 'How does Spotify enable instant music playback without buffering?',
+    options: ['Pre-downloading all songs', 'Client-side caching of recently/frequently played songs plus predictive prefetching', 'Using only low-quality audio', 'Direct database streaming'],
+    correctIndex: 1, explanation: 'Spotify caches recently played songs locally and prefetches upcoming tracks in a playlist. Combined with CDN delivery, this creates near-instant playback.' },
+
+  // === Location & Transport ===
+  { id: 'hld-uber-mcq-1', problemId: 'hld-uber', difficulty: 'hard',
+    question: 'Which spatial indexing approach efficiently answers "find all drivers within 2km of this location"?',
+    options: ['Linear scan of all driver positions', 'Geohash grid or Quadtree', 'SQL BETWEEN query on lat/lng', 'Binary search on coordinates'],
+    correctIndex: 1, explanation: 'Geohash converts 2D coordinates into 1D strings where nearby locations share prefixes. Quadtrees recursively divide space into quadrants. Both enable efficient spatial range queries.' },
+  { id: 'hld-uber-mcq-2', problemId: 'hld-uber', difficulty: 'hard',
+    question: 'How does Uber implement surge pricing?',
+    options: ['Manual price adjustment', 'Real-time supply/demand ratio per geographic zone using driver availability vs ride requests', 'Fixed schedule based on time of day', 'Random price increases'],
+    correctIndex: 1, explanation: 'Uber divides the city into hexagonal zones. When demand (ride requests) exceeds supply (available drivers) in a zone, a surge multiplier is applied to incentivize more drivers to that area.' },
+
+  { id: 'hld-google-maps-mcq-1', problemId: 'hld-google-maps', difficulty: 'hard',
+    question: 'How does Google Maps efficiently render maps at different zoom levels?',
+    options: ['Re-rendering the entire map each time', 'Pre-computed map tiles at each zoom level served from CDN', 'Client-side vector rendering only', 'Streaming raw geographic data'],
+    correctIndex: 1, explanation: 'Maps are divided into 256x256px tiles pre-rendered at each zoom level. The client requests only visible tiles. CDN caching makes delivery fast. Vector tiles are increasingly used for dynamic styling.' },
+
+  // === E-Commerce & Payments ===
+  { id: 'hld-amazon-mcq-1', problemId: 'hld-amazon', difficulty: 'hard',
+    question: 'What pattern prevents overselling inventory in a distributed e-commerce system?',
+    options: ['First come first served without locks', 'Reservation pattern: temporarily hold inventory during checkout with TTL', 'Allowing negative inventory and reconciling later', 'Single-threaded order processing'],
+    correctIndex: 1, explanation: 'When a user starts checkout, inventory is reserved (decremented) with a TTL. If checkout completes, the reservation becomes permanent. If it times out, inventory is released back.' },
+
+  { id: 'hld-payment-system-mcq-1', problemId: 'hld-payment-system', difficulty: 'hard',
+    question: 'What property ensures processing a payment request multiple times has the same effect as processing it once?',
+    options: ['Atomicity', 'Idempotency', 'Durability', 'Isolation'],
+    correctIndex: 1, explanation: 'Idempotency keys (unique per request) ensure retries don\'t cause duplicate charges. The server checks if a request with this key was already processed and returns the cached result.' },
+  { id: 'hld-payment-system-mcq-2', problemId: 'hld-payment-system', difficulty: 'hard',
+    question: 'Which pattern handles multi-step distributed transactions (e.g., charge card, update inventory, send email)?',
+    options: ['Two-phase commit', 'Saga pattern with compensating transactions', 'Single database transaction', 'Eventual consistency without coordination'],
+    correctIndex: 1, explanation: 'The Saga pattern breaks a distributed transaction into local transactions with compensating actions. If step 3 fails, steps 1 and 2 are rolled back via compensation (e.g., refund the charge).' },
+
+  { id: 'hld-ticketmaster-mcq-1', problemId: 'hld-ticketmaster', difficulty: 'hard',
+    question: 'How do you prevent two users from booking the same concert seat simultaneously?',
+    options: ['Optimistic locking with retries', 'Distributed lock on the seat with TTL', 'Queue all requests and process sequentially', 'Allow double-booking and reconcile later'],
+    correctIndex: 1, explanation: 'A distributed lock (e.g., Redis SETNX) on the seat ID with a TTL prevents concurrent booking. If a user doesn\'t complete purchase within TTL, the lock expires and the seat becomes available.' },
+
+  // === Search & Discovery ===
+  { id: 'hld-search-engine-mcq-1', problemId: 'hld-search-engine', difficulty: 'medium',
+    question: 'What is the core data structure that maps words to the documents containing them?',
+    options: ['B-tree', 'Inverted Index', 'Hash Table', 'Trie'],
+    correctIndex: 1, explanation: 'An inverted index maps each word to a sorted list of document IDs containing that word. This enables fast full-text search by intersecting posting lists for multi-word queries.' },
+
+  { id: 'hld-web-crawler-mcq-1', problemId: 'hld-web-crawler', difficulty: 'hard',
+    question: 'What is "politeness" in the context of web crawling?',
+    options: ['Only crawling public pages', 'Rate-limiting requests per domain to avoid overloading target servers', 'Asking permission before crawling', 'Using HTTPS instead of HTTP'],
+    correctIndex: 1, explanation: 'Politeness means respecting robots.txt, adding delays between requests to the same domain, and not overwhelming servers. A polite crawler uses per-domain rate limiting and respects crawl-delay directives.' },
+
+  { id: 'hld-typeahead-mcq-1', problemId: 'hld-typeahead', difficulty: 'medium',
+    question: 'Which data structure is ideal for prefix-based search suggestions in typeahead?',
+    options: ['Hash Map', 'Trie (prefix tree)', 'B-tree', 'Bloom Filter'],
+    correctIndex: 1, explanation: 'A Trie allows O(p) prefix lookup where p is prefix length. Each node can store the top-k suggestions for that prefix, enabling instant typeahead results.' },
+  { id: 'hld-typeahead-mcq-2', problemId: 'hld-typeahead', difficulty: 'hard',
+    question: 'How do you rank typeahead suggestions in real-time?',
+    options: ['Alphabetical order', 'By search frequency, updated periodically with a MapReduce pipeline', 'Random ordering', 'By string length'],
+    correctIndex: 1, explanation: 'Each trie node stores the top-k suggestions sorted by search frequency. A periodic MapReduce job processes search logs and updates the trie. Recent trends can be weighted higher.' },
+
+  { id: 'hld-recommendation-system-mcq-1', problemId: 'hld-recommendation-system', difficulty: 'hard',
+    question: 'What is collaborative filtering in a recommendation system?',
+    options: ['Filtering inappropriate content', 'Recommending items based on similar users\' preferences and behaviors', 'Using item descriptions to match user interests', 'A/B testing different recommendation strategies'],
+    correctIndex: 1, explanation: 'Collaborative filtering finds users with similar behavior (e.g., ratings, purchases) and recommends items those similar users liked. It doesn\'t need item content understanding.' },
+
+  // === Collaboration & Productivity ===
+  { id: 'hld-dropbox-mcq-1', problemId: 'hld-dropbox', difficulty: 'hard',
+    question: 'How does Dropbox minimize upload bandwidth for large files?',
+    options: ['Compressing the entire file', 'Chunking files and only uploading changed chunks (delta sync)', 'Limiting file size', 'Uploading during off-peak hours only'],
+    correctIndex: 1, explanation: 'Files are split into 4MB chunks, each identified by a content hash. When a file changes, only modified chunks are re-uploaded. Identical chunks across files/users are deduplicated.' },
+
+  { id: 'hld-google-docs-mcq-1', problemId: 'hld-google-docs', difficulty: 'hard',
+    question: 'Which algorithm enables real-time collaborative editing without conflicts in Google Docs?',
+    options: ['Locking the document for one editor at a time', 'Operational Transformation (OT) or CRDT', 'Last-write-wins conflict resolution', 'Manual merge like git'],
+    correctIndex: 1, explanation: 'OT transforms concurrent operations to maintain consistency. CRDTs (Conflict-free Replicated Data Types) mathematically guarantee convergence. Both allow multiple users to edit simultaneously without locks.' },
+
+  // === Monitoring & Analytics ===
+  { id: 'hld-metrics-logging-mcq-1', problemId: 'hld-metrics-logging', difficulty: 'medium',
+    question: 'What is the purpose of a time-series database (TSDB) in a metrics system?',
+    options: ['Storing user profiles', 'Efficiently storing and querying timestamped data points with compression and fast range queries', 'Running SQL analytics', 'Caching frequently accessed data'],
+    correctIndex: 1, explanation: 'TSDBs (InfluxDB, Prometheus, TimescaleDB) are optimized for time-stamped data: efficient compression, fast time-range queries, automatic downsampling, and retention policies.' },
+
+  { id: 'hld-cdn-mcq-1', problemId: 'hld-cdn', difficulty: 'medium',
+    question: 'What is "origin shielding" in a CDN architecture?',
+    options: ['Encrypting the origin server', 'An intermediate cache layer between edge servers and origin to reduce origin load', 'DDoS protection for the origin', 'Hiding the origin server IP'],
+    correctIndex: 1, explanation: 'Origin shield is a mid-tier cache. Instead of every edge server hitting the origin on a cache miss, they hit the shield. This consolidates origin requests and protects it from traffic spikes.' },
+
+  { id: 'hld-load-balancer-mcq-1', problemId: 'hld-load-balancer', difficulty: 'medium',
+    question: 'What is the difference between L4 and L7 load balancing?',
+    options: ['L4 is faster but L7 doesn\'t exist', 'L4 operates on TCP/UDP (transport layer), L7 inspects HTTP content (application layer) for smarter routing', 'L4 handles more traffic', 'They are identical'],
+    correctIndex: 1, explanation: 'L4 load balancers route based on IP/port (fast, simple). L7 load balancers can inspect HTTP headers, URLs, cookies to make routing decisions (e.g., route /api to backend, /static to CDN).' },
+  { id: 'hld-load-balancer-mcq-2', problemId: 'hld-load-balancer', difficulty: 'hard',
+    question: 'Which load balancing algorithm sends requests to the server with the fewest active connections?',
+    options: ['Round Robin', 'Least Connections', 'Weighted Round Robin', 'IP Hash'],
+    correctIndex: 1, explanation: 'Least Connections routes to the server handling the fewest active requests. This is better than Round Robin when request processing times vary, as it naturally balances the actual load.' },
+
+  { id: 'hld-distributed-message-queue-mcq-1', problemId: 'hld-distributed-message-queue', difficulty: 'hard',
+    question: 'What delivery guarantee means every message is delivered at least once but possibly more?',
+    options: ['At-most-once', 'At-least-once', 'Exactly-once', 'Best-effort'],
+    correctIndex: 1, explanation: 'At-least-once delivery retries until acknowledged, so duplicates are possible. Consumers must be idempotent. Exactly-once is the hardest to achieve and usually requires idempotent processing.' },
+  { id: 'hld-distributed-message-queue-mcq-2', problemId: 'hld-distributed-message-queue', difficulty: 'hard',
+    question: 'How do you ensure ordered message processing in a distributed queue?',
+    options: ['Use a single consumer', 'Partition messages by key; ordering is guaranteed within a partition', 'Timestamps on each message', 'Sort messages before processing'],
+    correctIndex: 1, explanation: 'Messages with the same partition key go to the same partition and are consumed in order. Different partition keys can be processed in parallel. Kafka uses this approach.' },
+];
+
+// ─── Category MCQ Map (easy to add/subtract per category) ───────────────────
+export const MCQ_CARDS_BY_CATEGORY: Record<string, MCQCard[]> = {
+  dsa: DSA_MCQ_CARDS,
+  hld: HLD_MCQ_CARDS,
+  // lld: [],        // No review for LLD
+  // behavioral: [], // No review for Behavioral
+};
+
+// Backwards-compatible export (default = DSA)
+export const MCQ_CARDS = DSA_MCQ_CARDS;

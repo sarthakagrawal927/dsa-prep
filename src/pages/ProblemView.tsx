@@ -12,6 +12,7 @@ import { useCategory } from '../contexts/CategoryContext';
 import { getCategoryConfig } from '../types';
 import type { Language, SimilarQuestion } from '../types';
 import DiagramEditor from '../components/DiagramEditor';
+import { useSpeechRecognition } from '../hooks/useSpeechRecognition';
 import {
   Play,
   RotateCcw,
@@ -36,6 +37,10 @@ import {
   Link2,
   PenTool,
   GripVertical,
+  Mic,
+  MicOff,
+  Timer,
+  RotateCw,
 } from 'lucide-react';
 
 export default function ProblemView() {
@@ -212,6 +217,9 @@ export default function ProblemView() {
         </PanelResizeHandle>
         <Panel defaultSize={60} minSize={35}>
         <div className="flex flex-col h-full bg-gray-950">
+          {category === 'behavioral' ? (
+            <BehavioralPracticePanel problem={problem} ai={ai} showAI={showAI} setShowAI={setShowAI} code={code} language={language} selectedCode={selectedCode} />
+          ) : (
           <PanelGroup orientation="vertical">
             <Panel defaultSize={70} minSize={30}>
               <div className="flex flex-col h-full">
@@ -282,6 +290,7 @@ export default function ProblemView() {
               </div>
             </Panel>
           </PanelGroup>
+          )}
         </div>
         </Panel>
         </PanelGroup>
@@ -614,12 +623,18 @@ function EditorToolbar({ handleReset, handleRun, isRunning, language, setLanguag
 }
 
 /** AI Advisor Panel */
+const PROVIDER_LABELS: Record<string, string> = {
+  'claude-code': 'Claude', codex: 'Codex', 'gemini-cli': 'Gemini',
+  openai: 'OpenAI', anthropic: 'Anthropic', google: 'Gemini', deepseek: 'DeepSeek', qwen: 'Qwen',
+};
+
 function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType<typeof useAI>; problem: any; code: string; language: Language; selectedCode?: string }) {
   const [input, setInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [config, setConfig] = useState(loadAIConfig);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -633,23 +648,20 @@ function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType
     return ctx;
   };
 
+  const isReady = LOCAL_PROVIDERS.has(config.provider) || !!config.apiKey;
+
   const handleSend = () => {
     if (!input.trim() || ai.isStreaming) return;
-    if (!LOCAL_PROVIDERS.has(config.provider) && !config.apiKey) {
-      setShowSettings(true);
-      return;
-    }
+    if (!isReady) { setShowSettings(true); return; }
     abortRef.current = new AbortController();
     ai.ask(input, config, buildSystemContext(selectedCode || undefined), abortRef.current.signal);
     setInput('');
+    if (inputRef.current) inputRef.current.style.height = 'auto';
   };
 
   const handleAskAboutSelection = (question: string) => {
     if (!selectedCode || ai.isStreaming) return;
-    if (!LOCAL_PROVIDERS.has(config.provider) && !config.apiKey) {
-      setShowSettings(true);
-      return;
-    }
+    if (!isReady) { setShowSettings(true); return; }
     const msg = `[Selected code]\n\`\`\`\n${selectedCode}\n\`\`\`\n\n${question}`;
     abortRef.current = new AbortController();
     ai.ask(msg, config, buildSystemContext(selectedCode), abortRef.current.signal);
@@ -660,25 +672,32 @@ function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType
     setShowSettings(false);
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setInput(e.target.value);
+    e.target.style.height = 'auto';
+    e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+  };
+
+  // ── Settings panel ──
   if (showSettings) {
     return (
-      <div className="flex flex-col h-full">
-        <div className="flex h-9 items-center justify-between border-b border-gray-800 px-4">
-          <span className="text-xs font-medium text-purple-400">AI Settings</span>
-          <button onClick={() => setShowSettings(false)} className="text-gray-400 hover:text-gray-200">
-            <X className="h-3.5 w-3.5" />
+      <div className="flex flex-col h-full bg-gray-950">
+        <div className="flex h-10 items-center justify-between border-b border-gray-800/80 px-4">
+          <span className="text-xs font-semibold text-gray-200">Settings</span>
+          <button onClick={() => setShowSettings(false)} className="rounded-md p-1 text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors">
+            <X className="h-4 w-4" />
           </button>
         </div>
-        <div className="p-4 space-y-3">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
           <div>
-            <label className="mb-1 block text-xs text-gray-400">Provider</label>
+            <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-gray-500">Provider</label>
             <select
               value={config.provider}
               onChange={e => {
                 const p = e.target.value as AIProvider;
                 setConfig(prev => ({ ...prev, provider: p, model: getModels(p)[0] }));
               }}
-              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-200 outline-none"
+              className="w-full rounded-lg border border-gray-700/80 bg-gray-900 px-3 py-2.5 text-sm text-gray-200 outline-none focus:border-purple-500/50 transition-colors"
             >
               <optgroup label="Local CLI (no API key)">
                 <option value="claude-code">Claude Code</option>
@@ -695,106 +714,143 @@ function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType
             </select>
           </div>
           <div>
-            <label className="mb-1 block text-xs text-gray-400">Model</label>
+            <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-gray-500">Model</label>
             <select
               value={config.model}
               onChange={e => setConfig(prev => ({ ...prev, model: e.target.value }))}
-              className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-200 outline-none"
+              className="w-full rounded-lg border border-gray-700/80 bg-gray-900 px-3 py-2.5 text-sm text-gray-200 outline-none focus:border-purple-500/50 transition-colors"
             >
               {getModels(config.provider).map(m => <option key={m} value={m}>{m}</option>)}
             </select>
           </div>
           {LOCAL_PROVIDERS.has(config.provider) ? (
-            <div className="rounded-lg border border-gray-700 bg-gray-800/50 p-3">
-              <p className="text-xs text-gray-400">No API key needed. Uses your local CLI.</p>
-              <p className="mt-1 text-xs text-gray-500">Run <code className="rounded bg-gray-700 px-1">npm run server</code> to start the local server.</p>
+            <div className="rounded-xl border border-green-500/20 bg-green-500/5 p-3.5">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+                <span className="text-xs font-medium text-green-400">Local mode</span>
+              </div>
+              <p className="text-xs text-gray-400 leading-relaxed">No API key needed. Uses your local CLI installation. Make sure the server is running with <code className="rounded bg-gray-800 px-1.5 py-0.5 text-green-300 text-[11px]">npm run dev</code></p>
             </div>
           ) : (
             <div>
-              <label className="mb-1 block text-xs text-gray-400">API Key</label>
+              <label className="mb-1.5 block text-[11px] font-medium uppercase tracking-wider text-gray-500">API Key</label>
               <input
                 type="password"
                 value={config.apiKey}
                 onChange={e => setConfig(prev => ({ ...prev, apiKey: e.target.value }))}
                 placeholder="sk-..."
-                className="w-full rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-xs text-gray-200 placeholder-gray-500 outline-none"
+                className="w-full rounded-lg border border-gray-700/80 bg-gray-900 px-3 py-2.5 text-sm text-gray-200 placeholder-gray-600 outline-none focus:border-purple-500/50 transition-colors"
               />
             </div>
           )}
           <button
             onClick={handleSaveSettings}
-            className="w-full rounded-lg bg-purple-600 py-2 text-xs font-medium text-white hover:bg-purple-700"
+            className="w-full rounded-xl bg-purple-600 py-2.5 text-sm font-semibold text-white transition-all hover:bg-purple-500 active:scale-[0.98]"
           >
-            Save
+            Save Settings
           </button>
         </div>
       </div>
     );
   }
 
+  // ── Chat panel ──
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex h-9 items-center justify-between border-b border-gray-800 px-4">
-        <span className="flex items-center gap-1.5 text-xs font-medium text-purple-400">
-          <Bot className="h-3.5 w-3.5" />
-          AI Advisor
-        </span>
-        <div className="flex items-center gap-1">
-          <button onClick={() => ai.clearMessages()} className="text-xs text-gray-500 hover:text-gray-300 px-1">Clear</button>
-          <button onClick={() => setShowSettings(true)} className="text-gray-400 hover:text-gray-200">
+    <div className="flex flex-col h-full bg-gray-950">
+      {/* Header */}
+      <div className="flex h-10 items-center justify-between border-b border-gray-800/80 px-3">
+        <div className="flex items-center gap-2">
+          <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-purple-500/20">
+            <Bot className="h-3.5 w-3.5 text-purple-400" />
+          </div>
+          <span className="text-xs font-semibold text-gray-200">AI Tutor</span>
+          <span className="rounded-full bg-gray-800 px-2 py-0.5 text-[10px] font-medium text-gray-400">
+            {PROVIDER_LABELS[config.provider] || config.provider}
+          </span>
+        </div>
+        <div className="flex items-center gap-0.5">
+          {ai.messages.length > 0 && (
+            <button onClick={() => ai.clearMessages()} className="rounded-md px-2 py-1 text-[11px] text-gray-500 hover:bg-gray-800 hover:text-gray-300 transition-colors">
+              Clear
+            </button>
+          )}
+          <button onClick={() => setShowSettings(true)} className="rounded-md p-1.5 text-gray-400 hover:bg-gray-800 hover:text-gray-200 transition-colors">
             <Settings className="h-3.5 w-3.5" />
           </button>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto p-3 space-y-3 min-h-0">
-        {ai.messages.length === 0 && (
-          <div className="text-center py-4">
-            <Bot className="mx-auto h-8 w-8 text-gray-700 mb-2" />
-            <p className="text-xs text-gray-500">Ask for hints, approach ideas, or help debugging — without spoilers.</p>
-            <div className="mt-3 flex flex-wrap gap-1.5 justify-center">
-              {['Give me a hint', 'What pattern should I use?', 'Help me debug'].map(q => (
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto min-h-0 px-3 py-3">
+        {ai.messages.length === 0 ? (
+          <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-purple-500/10 mb-3">
+              <Bot className="h-6 w-6 text-purple-400" />
+            </div>
+            <p className="text-sm font-medium text-gray-300 mb-1">AI Tutor</p>
+            <p className="text-xs text-gray-500 mb-4 max-w-[220px] leading-relaxed">
+              Get hints, debug help, or explore approaches — no spoilers.
+            </p>
+            <div className="flex flex-col gap-1.5 w-full max-w-[240px]">
+              {[
+                { q: 'Give me a hint', icon: '💡' },
+                { q: 'What pattern should I use?', icon: '🧩' },
+                { q: 'Help me debug', icon: '🐛' },
+                { q: 'Explain the approach', icon: '📖' },
+              ].map(({ q, icon }) => (
                 <button
                   key={q}
-                  onClick={() => { setInput(q); }}
-                  className="rounded-full border border-gray-700 bg-gray-800 px-2.5 py-1 text-xs text-gray-400 hover:border-purple-500/50 hover:text-purple-300"
+                  onClick={() => { setInput(q); inputRef.current?.focus(); }}
+                  className="flex items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/80 px-3 py-2 text-left text-xs text-gray-400 transition-all hover:border-purple-500/30 hover:bg-purple-500/5 hover:text-purple-300"
                 >
-                  {q}
+                  <span>{icon}</span>
+                  <span>{q}</span>
                 </button>
               ))}
             </div>
           </div>
-        )}
-        {ai.messages.map((msg, i) => (
-          <div key={i} className={`text-xs leading-relaxed ${msg.role === 'user' ? 'text-gray-300' : 'text-purple-200'}`}>
-            <span className={`text-[10px] font-medium uppercase tracking-wider ${msg.role === 'user' ? 'text-gray-500' : 'text-purple-500'}`}>
-              {msg.role === 'user' ? 'You' : 'AI'}
-            </span>
-            <p className="mt-0.5 whitespace-pre-wrap">{msg.content}{ai.isStreaming && i === ai.messages.length - 1 && msg.role === 'assistant' ? '▊' : ''}</p>
+        ) : (
+          <div className="space-y-3">
+            {ai.messages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed ${
+                  msg.role === 'user'
+                    ? 'bg-purple-600/90 text-white rounded-br-md'
+                    : 'bg-gray-800/80 text-gray-200 rounded-bl-md border border-gray-700/50'
+                }`}>
+                  <p className="whitespace-pre-wrap break-words">{msg.content}{ai.isStreaming && i === ai.messages.length - 1 && msg.role === 'assistant' ? <span className="inline-block w-1.5 h-3.5 bg-purple-400 ml-0.5 animate-pulse rounded-sm" /> : ''}</p>
+                </div>
+              </div>
+            ))}
+            {ai.error && (
+              <div className="flex justify-start">
+                <div className="max-w-[85%] rounded-2xl rounded-bl-md border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-xs text-red-300">
+                  {ai.error}
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
           </div>
-        ))}
-        {ai.error && (
-          <div className="rounded-lg border border-red-500/20 bg-red-500/5 p-2 text-xs text-red-400">
-            {ai.error}
-          </div>
         )}
-        <div ref={chatEndRef} />
       </div>
-      <div className="border-t border-gray-800">
+
+      {/* Input area */}
+      <div className="border-t border-gray-800/80">
         {selectedCode && (
-          <div className="border-b border-gray-800 px-2 py-1.5">
-            <div className="flex items-center gap-1.5 mb-1.5">
+          <div className="border-b border-gray-800/50 px-3 py-2 bg-blue-500/5">
+            <div className="flex items-center gap-1.5 mb-2">
               <Code2 className="h-3 w-3 text-blue-400 flex-shrink-0" />
               <span className="text-[10px] text-blue-400 font-medium truncate">
-                Selected: {selectedCode.split('\n')[0].slice(0, 40)}{selectedCode.length > 40 ? '...' : ''}
+                {selectedCode.split('\n')[0].slice(0, 50)}{selectedCode.length > 50 ? '...' : ''}
               </span>
             </div>
             <div className="flex flex-wrap gap-1">
-              {['Explain this code', 'Is this correct?', 'How to optimize this?', 'What\'s the time complexity?'].map(q => (
+              {['Explain this', 'Is this correct?', 'Optimize this', 'Time complexity?'].map(q => (
                 <button
                   key={q}
                   onClick={() => handleAskAboutSelection(q)}
                   disabled={ai.isStreaming}
-                  className="rounded-full border border-blue-500/30 bg-blue-500/10 px-2 py-0.5 text-[10px] text-blue-300 hover:bg-blue-500/20 disabled:opacity-50"
+                  className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-[10px] font-medium text-blue-300 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
                 >
                   {q}
                 </button>
@@ -802,19 +858,22 @@ function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType
             </div>
           </div>
         )}
-        <div className="flex gap-1.5 p-2">
-          <input
+        <div className="flex items-end gap-2 p-2.5">
+          <textarea
+            ref={inputRef}
             value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
-            placeholder={config.apiKey ? (selectedCode ? 'Ask about selection or type a question...' : 'Ask for a hint...') : 'Set API key in settings first'}
-            disabled={!config.apiKey && !showSettings}
-            className="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-gray-200 placeholder-gray-500 outline-none focus:border-purple-500/50 disabled:opacity-50"
+            onChange={handleInputChange}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+            placeholder={isReady ? 'Ask a question...' : 'Configure provider in settings'}
+            disabled={!isReady}
+            rows={1}
+            className="flex-1 resize-none rounded-xl border border-gray-700/80 bg-gray-900 px-3.5 py-2 text-xs text-gray-200 placeholder-gray-600 outline-none transition-colors focus:border-purple-500/50 disabled:opacity-40"
+            style={{ maxHeight: '120px' }}
           />
           <button
             onClick={handleSend}
-            disabled={ai.isStreaming || !input.trim()}
-            className="rounded-lg bg-purple-600 px-2.5 py-1.5 text-white transition-colors hover:bg-purple-700 disabled:opacity-50"
+            disabled={ai.isStreaming || !input.trim() || !isReady}
+            className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl bg-purple-600 text-white transition-all hover:bg-purple-500 disabled:opacity-40 disabled:hover:bg-purple-600 active:scale-95"
           >
             {ai.isStreaming ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
           </button>
@@ -1141,6 +1200,213 @@ function SimilarProblems({ problem }: { problem: any }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/** Behavioral interview practice panel with mic, timer, and STAR framework */
+function BehavioralPracticePanel({ problem, ai, showAI, setShowAI, code, language, selectedCode }: {
+  problem: any; ai: ReturnType<typeof useAI>; showAI: boolean; setShowAI: (v: boolean) => void;
+  code: string; language: Language; selectedCode: string;
+}) {
+  const { transcript, isListening, isSupported, error: speechError, start, stop, reset: resetSpeech } = useSpeechRecognition();
+  const [manualText, setManualText] = useState('');
+  const [timer, setTimer] = useState(0);
+  const [timerActive, setTimerActive] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
+  const [activeSection, setActiveSection] = useState<'practice' | 'ai'>('practice');
+
+  // Merge speech transcript with manual edits
+  const fullResponse = transcript ? (manualText ? manualText + '\n' + transcript : transcript) : manualText;
+
+  // Timer logic
+  useEffect(() => {
+    if (timerActive) {
+      timerRef.current = setInterval(() => setTimer(t => t + 1), 1000);
+    } else if (timerRef.current) {
+      clearInterval(timerRef.current);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [timerActive]);
+
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, '0')}`;
+  };
+
+  const handleStartPractice = () => {
+    setTimerActive(true);
+    if (isSupported) start();
+  };
+
+  const handleStopPractice = () => {
+    setTimerActive(false);
+    if (isListening) stop();
+  };
+
+  const handleReset = () => {
+    setTimerActive(false);
+    setTimer(0);
+    setManualText('');
+    resetSpeech();
+  };
+
+  const starHints = problem.starHints || {};
+  const tips = problem.tips || [];
+  const assessing = problem.assessing || '';
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Tab bar */}
+      <div className="flex items-center justify-between border-b border-gray-800 px-4 py-2">
+        <div className="flex items-center gap-1 rounded-md bg-gray-800 p-0.5">
+          <button
+            onClick={() => setActiveSection('practice')}
+            className={`flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+              activeSection === 'practice' ? 'bg-gray-700 text-white' : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Mic className="h-3 w-3" />
+            Practice
+          </button>
+          <button
+            onClick={() => { setActiveSection('ai'); setShowAI(true); }}
+            className={`flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium transition-colors ${
+              activeSection === 'ai' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            <Bot className="h-3 w-3" />
+            AI Coach
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className={`font-mono text-sm font-medium ${timer > 120 ? 'text-red-400' : 'text-gray-300'}`}>
+            <Timer className="inline h-3.5 w-3.5 mr-1" />
+            {formatTime(timer)}
+          </div>
+        </div>
+      </div>
+
+      {activeSection === 'ai' ? (
+        <AIPanel ai={ai} problem={problem} code={fullResponse} language={language} selectedCode={selectedCode} />
+      ) : (
+        <div className="flex-1 overflow-y-auto">
+          {/* STAR Framework Guide */}
+          {Object.keys(starHints).length > 0 && (
+            <div className="border-b border-gray-800 p-4">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">STAR Framework</h3>
+              <div className="grid grid-cols-2 gap-2">
+                {(['situation', 'task', 'action', 'result'] as const).map(key => {
+                  if (!starHints[key]) return null;
+                  const colors = {
+                    situation: 'border-blue-500/30 bg-blue-500/5 text-blue-300',
+                    task: 'border-yellow-500/30 bg-yellow-500/5 text-yellow-300',
+                    action: 'border-green-500/30 bg-green-500/5 text-green-300',
+                    result: 'border-purple-500/30 bg-purple-500/5 text-purple-300',
+                  };
+                  return (
+                    <div key={key} className={`rounded-lg border p-2.5 ${colors[key]}`}>
+                      <div className="text-[10px] font-bold uppercase tracking-wider mb-1 opacity-70">{key}</div>
+                      <div className="text-xs leading-relaxed">{starHints[key]}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* What's being assessed */}
+          {assessing && (
+            <div className="border-b border-gray-800 px-4 py-3">
+              <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+                <Lightbulb className="h-3.5 w-3.5 flex-shrink-0 text-amber-400 mt-0.5" />
+                <div>
+                  <div className="text-[10px] font-bold text-amber-400 uppercase tracking-wider mb-0.5">What they're assessing</div>
+                  <div className="text-xs text-amber-200/80 leading-relaxed">{assessing}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Tips */}
+          {tips.length > 0 && (
+            <div className="border-b border-gray-800 px-4 py-3">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Tips</h3>
+              <ul className="space-y-1">
+                {tips.map((tip: string, i: number) => (
+                  <li key={i} className="flex items-start gap-2 text-xs text-gray-300">
+                    <span className="text-gray-600 mt-0.5">&#8226;</span>
+                    {tip}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Recording controls + transcript */}
+          <div className="p-4">
+            <div className="flex items-center gap-2 mb-3">
+              {!timerActive ? (
+                <button
+                  onClick={handleStartPractice}
+                  className="flex items-center gap-1.5 rounded-lg bg-green-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-green-700"
+                >
+                  <Mic className="h-3.5 w-3.5" />
+                  Start Practice
+                </button>
+              ) : (
+                <button
+                  onClick={handleStopPractice}
+                  className="flex items-center gap-1.5 rounded-lg bg-red-600 px-4 py-2 text-xs font-medium text-white transition-colors hover:bg-red-700 animate-pulse"
+                >
+                  <MicOff className="h-3.5 w-3.5" />
+                  Stop
+                </button>
+              )}
+              <button
+                onClick={handleReset}
+                className="flex items-center gap-1 rounded-lg border border-gray-700 px-3 py-2 text-xs text-gray-400 transition-colors hover:bg-gray-800 hover:text-gray-200"
+              >
+                <RotateCw className="h-3.5 w-3.5" />
+                Reset
+              </button>
+              {isListening && (
+                <span className="flex items-center gap-1 text-xs text-red-400">
+                  <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                  Listening...
+                </span>
+              )}
+            </div>
+
+            {speechError && (
+              <div className="mb-3 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-2 text-xs text-red-400">
+                {speechError}
+              </div>
+            )}
+
+            {!isSupported && (
+              <div className="mb-3 rounded-lg border border-yellow-500/20 bg-yellow-500/5 px-3 py-2 text-xs text-yellow-400">
+                Speech recognition not supported. You can still type your answer below.
+              </div>
+            )}
+
+            <label className="mb-1.5 block text-xs font-medium text-gray-400">Your Answer</label>
+            <textarea
+              value={fullResponse}
+              onChange={e => { setManualText(e.target.value); if (transcript) resetSpeech(); }}
+              placeholder="Start speaking or type your response here..."
+              className="w-full rounded-lg border border-gray-800 bg-gray-900 p-3 text-sm text-gray-200 placeholder-gray-600 outline-none focus:border-blue-500/50 min-h-[200px] resize-y"
+            />
+
+            {fullResponse && (
+              <div className="mt-2 text-xs text-gray-500">
+                {fullResponse.split(/\s+/).filter(Boolean).length} words &middot; ~{Math.ceil(fullResponse.split(/\s+/).filter(Boolean).length / 130)} min speaking time
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
