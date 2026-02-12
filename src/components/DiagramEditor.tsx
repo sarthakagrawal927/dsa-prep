@@ -24,7 +24,7 @@ function saveDiagram(problemId: string, elements: any[], appState: any) {
   );
 }
 
-export default function DiagramEditor({ problemId }: { problemId: string }) {
+export default function DiagramEditor({ problemId, onElementsChange }: { problemId: string; onElementsChange?: (elements: any[]) => void }) {
   const [initialData, setInitialData] = useState<any>(undefined);
   const saveTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
 
@@ -38,9 +38,10 @@ export default function DiagramEditor({ problemId }: { problemId: string }) {
       if (saveTimer.current) clearTimeout(saveTimer.current);
       saveTimer.current = setTimeout(() => {
         saveDiagram(problemId, elements, appState);
+        onElementsChange?.(elements);
       }, 500);
     },
-    [problemId]
+    [problemId, onElementsChange]
   );
 
   useEffect(() => {
