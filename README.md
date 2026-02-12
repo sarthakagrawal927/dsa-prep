@@ -1,152 +1,142 @@
 # Interview Coder
 
-A comprehensive interview preparation platform for DSA, Low-Level Design, System Design, and Behavioral interviews.
+A comprehensive interview preparation platform for mastering DSA, Low-Level Design, System Design, and Behavioral interviews.
 
-## What is it?
+## Problem
 
-Interview Coder is a full-stack web app that helps you prepare for technical interviews across multiple domains:
+Technical interview preparation is fragmented across multiple tools: LeetCode for coding, Excalidraw for diagrams, ChatGPT for hints, and Anki for spaced repetition. Switching between tools breaks flow and makes it hard to track progress holistically.
 
-- **DSA (Data Structures & Algorithms)**: Solve coding problems with an integrated code editor and test runner
-- **LLD (Low-Level Design)**: Practice object-oriented design and design patterns
-- **HLD (System Design)**: Draw system architecture diagrams and document design decisions
-- **Behavioral**: Prepare answers using the STAR framework
+Interview Coder consolidates everything into a single platform with integrated code execution, diagram drawing, AI assistance, and spaced repetition review.
 
-## Key Features
+## Features
 
-- **Interactive Code Editor**: Write and run TypeScript code with real-time feedback
-- **Diagram Drawing**: Design system architectures with Excalidraw integration
-- **AI-Powered Hints**: Get Socratic guidance from multiple AI providers (OpenAI, Anthropic, Google, etc.)
-- **Spaced Repetition**: Review concepts using Anki-style flashcards and MCQ quizzes
-- **Progress Tracking**: Track your progress across all problem categories
-- **LeetCode Import**: Import problems directly from LeetCode
+- **Interactive Code Editor** - Write and run TypeScript code with Monaco Editor (VS Code engine)
+- **Visual Design Tool** - Draw system architecture diagrams with Excalidraw integration
+- **Multi-Provider AI Hints** - Get Socratic guidance without spoilers from OpenAI, Anthropic, Google Gemini, DeepSeek, or local CLI tools
+- **Spaced Repetition System** - Review concepts using Anki-style flashcards with SM-2 algorithm
+- **LeetCode Import** - Fetch problems directly via LeetCode API
+- **Progress Tracking** - Monitor completion rates across DSA, LLD, HLD, and Behavioral categories
+- **Pattern-Based Learning** - Group problems by algorithmic patterns (sliding window, two pointers, etc.)
 
-## Tech Stack
+## Architecture
 
-- **Frontend**: React 19, TypeScript, TailwindCSS, Vite
-- **Editor**: Monaco Editor (VS Code), Excalidraw
-- **Backend**: Supabase (PostgreSQL, Auth)
-- **Deployment**: Vercel
-- **AI**: OpenAI, Anthropic, Google Gemini, DeepSeek, Qwen
+```mermaid
+graph TB
+    subgraph "Frontend - React 19 + Vite"
+        A[React Router] --> B[Pages]
+        B --> C[Dashboard]
+        B --> D[ProblemView]
+        B --> E[AnkiReview]
+        B --> F[ImportProblem]
 
-## Quick Start
+        D --> G[Monaco Editor]
+        D --> H[Excalidraw]
+        D --> I[AI Chat]
+
+        J[Hooks Layer] --> K[useAI]
+        J --> L[useCodeExecution]
+        J --> M[useSpacedRepetition]
+        J --> N[useProgress]
+
+        O[Contexts] --> P[AuthContext]
+        O --> Q[CategoryContext]
+    end
+
+    subgraph "Local Dev Server - Express"
+        R[CLI Bridge API] --> S[claude CLI]
+        R --> T[codex CLI]
+        R --> U[gemini CLI]
+    end
+
+    subgraph "Backend - Supabase"
+        V[PostgreSQL] --> W[problems]
+        V --> X[progress]
+        V --> Y[notes]
+        V --> Z[spaced_repetition]
+        AA[Auth] --> AB[Email/Password]
+    end
+
+    subgraph "External APIs"
+        AC[LeetCode API] --> AD[Problem Import]
+        AE[OpenAI API]
+        AF[Anthropic API]
+        AG[Google Gemini API]
+    end
+
+    K --> R
+    K --> AE
+    K --> AF
+    K --> AG
+
+    L --> V
+    M --> V
+    N --> V
+    P --> AA
+
+    F --> AC
+
+    style R fill:#f9f,stroke:#333,stroke-width:2px
+    style V fill:#bbf,stroke:#333,stroke-width:2px
+    style G fill:#bfb,stroke:#333,stroke-width:2px
+    style H fill:#bfb,stroke:#333,stroke-width:2px
+```
+
+**Key Components:**
+
+- **Frontend**: React 19 SPA with TailwindCSS, Monaco Editor for code, Excalidraw for diagrams
+- **Local Dev Server**: Express proxy for CLI tools (claude, codex, gemini) to avoid API keys during development
+- **Database**: Supabase PostgreSQL stores problems, user progress, notes, and spaced repetition schedules
+- **External Integrations**: LeetCode API for problem import, multiple AI providers for hints
+
+## Run Steps
 
 ### Prerequisites
 
 - Node.js 18+
-- npm or yarn
+- Supabase account (free tier)
 
-### Installation
+### Setup
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/interview-coder.git
-cd interview-coder
-```
+1. **Clone and install**
+   ```bash
+   git clone https://github.com/yourusername/interview-coder.git
+   cd interview-coder
+   npm install
+   ```
 
-2. Install dependencies:
-```bash
-npm install
-```
+2. **Configure environment**
+   ```bash
+   cp .env.example .env.local
+   ```
 
-3. Set up environment variables:
-```bash
-cp .env.example .env.local
-```
+   Edit `.env.local`:
+   ```bash
+   VITE_SUPABASE_URL=your_supabase_project_url
+   VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+   ```
 
-Edit `.env.local` with your Supabase credentials:
-```bash
-VITE_SUPABASE_URL=your_supabase_url
-VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-```
+3. **Run database migrations**
+   ```bash
+   npx supabase db push
+   ```
 
-4. Start the development server:
-```bash
-npm run dev
-```
+4. **Start development server**
+   ```bash
+   npm run dev
+   ```
 
-Visit `http://localhost:5173` to start using the app.
+   Opens at `http://localhost:5173` (frontend) and `http://localhost:3456` (CLI bridge)
 
-## Usage
-
-### Solving Problems
-
-1. Select a category (DSA, LLD, HLD, or Behavioral) from the home page
-2. Browse problems by difficulty, pattern, or status
-3. Click on a problem to open the workspace
-4. For DSA/LLD: Write code and run test cases
-5. For HLD: Draw system diagrams or write architecture notes
-6. For Behavioral: Structure answers using STAR framework
-
-### Using AI Assistance
-
-1. Click the AI chat icon in the problem workspace
-2. Configure your AI provider and API key in settings
-3. Ask questions and get Socratic hints (no spoilers!)
-4. For local development: Use Claude Code, Codex, or Gemini CLI without API keys
-
-### Spaced Repetition Review
-
-1. Navigate to the Review page (`/:category/review`)
-2. Review flashcards and answer MCQ questions
-3. Rate your recall (Again, Hard, Good, Easy)
-4. System schedules next review based on your performance
-
-### Importing LeetCode Problems
-
-1. Go to `/dsa/import`
-2. Enter the LeetCode problem slug (e.g., "two-sum")
-3. Problem details are automatically fetched and added
-
-## Project Structure
-
-```
-interview-coder/
-├── src/
-│   ├── pages/          # Main routes (Home, Dashboard, ProblemView, etc.)
-│   ├── components/     # Reusable UI components
-│   ├── hooks/          # Custom React hooks for business logic
-│   ├── contexts/       # React contexts (Auth, Category)
-│   ├── data/           # Problem datasets (JSON files)
-│   └── lib/            # Utilities (Supabase, LeetCode API)
-├── server/             # Express server for local AI CLI tools (dev only)
-└── supabase/           # Database migrations and config
-```
-
-## Development
-
-### Available Commands
+### Production Build
 
 ```bash
-npm run dev              # Start frontend + backend dev servers
-npm run dev:frontend     # Start only frontend (Vite)
-npm run server           # Start only backend (CLI proxy)
-npm run build            # Build for production
-npm run preview          # Preview production build
-npm run lint             # Run ESLint
+npm run build
+npm run preview
 ```
 
-### Configuration
-
-- **TypeScript**: Non-strict mode for faster development
-- **Vite**: Fast dev server with HMR
-- **TailwindCSS**: Utility-first styling with dark theme
-- **React Router**: Category-aware routing (`/:category/*`)
-
-## Deployment
-
-The app is designed to be deployed on Vercel:
-
-1. Push your code to GitHub
-2. Import the repository in Vercel
-3. Set environment variables (Supabase URL and key)
-4. Deploy
-
-Vercel automatically handles builds and deployments on push to main.
-
-## License
-
-MIT License
+Deploy to Vercel by importing the GitHub repository and setting environment variables.
 
 ---
 
-Built with React 19, TypeScript, and Vite. Deployed on Vercel.
+**Tech Stack**: React 19, TypeScript, TailwindCSS, Vite, Supabase, Vercel
+**License**: MIT
