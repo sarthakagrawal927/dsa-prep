@@ -4,8 +4,9 @@ import { useAuth } from '../contexts/AuthContext';
 
 export type AIProvider = 'claude-code' | 'codex' | 'gemini-cli' | 'openai' | 'anthropic' | 'google' | 'deepseek' | 'qwen';
 
-// Local CLI providers that don't need API keys
+// Local CLI providers that don't need API keys (dev only)
 export const LOCAL_PROVIDERS = new Set<AIProvider>(['claude-code', 'codex', 'gemini-cli']);
+export const IS_LOCAL = import.meta.env.DEV;
 
 interface AIMessage {
   role: 'user' | 'assistant';
@@ -40,7 +41,9 @@ export function loadAIConfig(): AIConfig {
     const raw = localStorage.getItem(AI_CONFIG_KEY);
     if (raw) return JSON.parse(raw);
   } catch { }
-  return { provider: 'claude-code' as AIProvider, apiKey: '', model: 'claude-code-local' };
+  return IS_LOCAL
+    ? { provider: 'claude-code' as AIProvider, apiKey: '', model: 'claude-code-local' }
+    : { provider: 'anthropic' as AIProvider, apiKey: '', model: 'claude-sonnet-4-5-20250929' };
 }
 
 export function saveAIConfig(config: AIConfig) {

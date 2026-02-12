@@ -5,9 +5,10 @@ import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from 'reac
 import { useProblems } from '../hooks/useProblems';
 import { useProgress } from '../hooks/useProgress';
 import { useCodeExecution } from '../hooks/useCodeExecution';
-import { useAI, loadAIConfig, saveAIConfig, getModels, LOCAL_PROVIDERS, type AIProvider } from '../hooks/useAI';
+import { useAI, loadAIConfig, saveAIConfig, getModels, LOCAL_PROVIDERS, IS_LOCAL, type AIProvider } from '../hooks/useAI';
 import { useNotes } from '../hooks/useNotes';
 import { fetchLeetCodeProblem, buildProblemFromLeetCode } from '../lib/leetcode';
+import { extractDiagramText } from '../lib/diagramToText';
 import { useCategory } from '../contexts/CategoryContext';
 import { getCategoryConfig } from '../types';
 import type { Language, SimilarQuestion } from '../types';
@@ -66,6 +67,7 @@ export default function ProblemView() {
   const [showEditor, setShowEditor] = useState(false);
   const [markers, setMarkers] = useState([]);
   const [selectedCode, setSelectedCode] = useState('');
+  const [diagramElements, setDiagramElements] = useState<any[]>([]);
   const editorRef = useRef<any>(null);
   const saveTimerRef = useRef(null);
 
@@ -236,7 +238,7 @@ export default function ProblemView() {
                 />
                 <div className="flex-1 min-h-0">
                   {editorMode === 'diagram' ? (
-                    <DiagramEditor problemId={problem.id} />
+                    <DiagramEditor problemId={problem.id} onElementsChange={setDiagramElements} />
                   ) : (
                     <Editor
                       height="100%"
@@ -267,7 +269,7 @@ export default function ProblemView() {
             <Panel defaultSize={30} minSize={10}>
               <div className="flex flex-col h-full overflow-y-auto bg-gray-900">
                 {showAI ? (
-                  <AIPanel ai={ai} problem={problem} code={code} language={language} selectedCode={selectedCode} />
+                  <AIPanel ai={ai} problem={problem} code={code} language={language} selectedCode={selectedCode} diagramElements={diagramElements} editorMode={editorMode} />
                 ) : (
                   <>
                     <div className="flex h-9 items-center justify-between border-b border-gray-800 px-4">
@@ -628,7 +630,7 @@ const PROVIDER_LABELS: Record<string, string> = {
   openai: 'OpenAI', anthropic: 'Anthropic', google: 'Gemini', deepseek: 'DeepSeek', qwen: 'Qwen',
 };
 
-function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType<typeof useAI>; problem: any; code: string; language: Language; selectedCode?: string }) {
+function AIPanel({ ai, problem, code, language, selectedCode, diagramElements, editorMode }: { ai: ReturnType<typeof useAI>; problem: any; code: string; language: Language; selectedCode?: string; diagramElements?: any[]; editorMode?: 'code' | 'diagram' }) {
   const [input, setInput] = useState('');
   const [showSettings, setShowSettings] = useState(false);
   const [config, setConfig] = useState(loadAIConfig);
@@ -640,8 +642,13 @@ function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [ai.messages]);
 
+  const diagramText = diagramElements?.length ? extractDiagramText(diagramElements) : '';
+
   const buildSystemContext = (extraSnippet?: string) => {
     let ctx = `Problem: "${problem.title}" (${problem.difficulty})\nPattern: ${problem.pattern}\nDescription: ${problem.description?.slice(0, 500)}\n\nStudent's current code (${language}):\n\`\`\`\n${code}\n\`\`\``;
+    if (diagramText) {
+      ctx += `\n\n${diagramText}`;
+    }
     if (extraSnippet) {
       ctx += `\n\nThe student has selected this specific code snippet and is asking about it:\n\`\`\`\n${extraSnippet}\n\`\`\``;
     }
@@ -665,6 +672,13 @@ function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType
     const msg = `[Selected code]\n\`\`\`\n${selectedCode}\n\`\`\`\n\n${question}`;
     abortRef.current = new AbortController();
     ai.ask(msg, config, buildSystemContext(selectedCode), abortRef.current.signal);
+  };
+
+  const handleAskAboutDiagram = (question: string) => {
+    if (!diagramText || ai.isStreaming) return;
+    if (!isReady) { setShowSettings(true); return; }
+    abortRef.current = new AbortController();
+    ai.ask(question, config, buildSystemContext(), abortRef.current.signal);
   };
 
   const handleSaveSettings = () => {
@@ -699,11 +713,13 @@ function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType
               }}
               className="w-full rounded-lg border border-gray-700/80 bg-gray-900 px-3 py-2.5 text-sm text-gray-200 outline-none focus:border-purple-500/50 transition-colors"
             >
-              <optgroup label="Local CLI (no API key)">
-                <option value="claude-code">Claude Code</option>
-                <option value="codex">Codex CLI</option>
-                <option value="gemini-cli">Gemini CLI</option>
-              </optgroup>
+              {IS_LOCAL && (
+                <optgroup label="Local CLI (no API key)">
+                  <option value="claude-code">Claude Code</option>
+                  <option value="codex">Codex CLI</option>
+                  <option value="gemini-cli">Gemini CLI</option>
+                </optgroup>
+              )}
               <optgroup label="Cloud API (needs key)">
                 <option value="openai">OpenAI</option>
                 <option value="anthropic">Anthropic</option>
@@ -851,6 +867,26 @@ function AIPanel({ ai, problem, code, language, selectedCode }: { ai: ReturnType
                   onClick={() => handleAskAboutSelection(q)}
                   disabled={ai.isStreaming}
                   className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-2 py-1 text-[10px] font-medium text-blue-300 transition-colors hover:bg-blue-500/20 disabled:opacity-50"
+                >
+                  {q}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {editorMode === 'diagram' && diagramText && (
+          <div className="border-b border-gray-800/50 px-3 py-2 bg-orange-500/5">
+            <div className="flex items-center gap-1.5 mb-2">
+              <PenTool className="h-3 w-3 text-orange-400 flex-shrink-0" />
+              <span className="text-[10px] text-orange-400 font-medium">Diagram detected</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {['Review my diagram', 'What\'s missing?', 'Suggest improvements', 'Explain trade-offs'].map(q => (
+                <button
+                  key={q}
+                  onClick={() => handleAskAboutDiagram(q)}
+                  disabled={ai.isStreaming}
+                  className="rounded-lg border border-orange-500/20 bg-orange-500/10 px-2 py-1 text-[10px] font-medium text-orange-300 transition-colors hover:bg-orange-500/20 disabled:opacity-50"
                 >
                   {q}
                 </button>
